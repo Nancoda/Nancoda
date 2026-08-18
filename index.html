@@ -2,222 +2,562 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>NANCODA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>deneme - Nancoda</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { display: flex; height: 100vh; background-color: #313338; color: #dbdee1; overflow: hidden; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-    #sidebar { width: 240px; background-color: #2b2d31; display: flex; flex-direction: column; border-right: 1px solid #1f2023; }
-    .sidebar-header { padding: 16px; font-weight: bold; font-size: 16px; color: #f2f3f5; border-bottom: 1px solid #1f2023; }
-    .channel-section { padding: 12px 8px 4px 8px; font-size: 12px; font-weight: bold; color: #949ba4; text-transform: uppercase; }
-    .channel-btn { display: flex; align-items: center; padding: 8px 12px; margin: 2px 8px; border-radius: 4px; cursor: pointer; color: #949ba4; }
-    .channel-btn:hover { background-color: #35373c; color: #dbdee1; }
-    .channel-btn.active { background-color: #404249; color: #ffffff; }
-    .channel-icon { margin-right: 8px; font-size: 16px; }
+    body {
+      display: flex;
+      height: 100vh;
+      background-color: #1e1f22;
+      color: #dbdee1;
+      overflow: hidden;
+    }
 
-    /* SES KANALI ALTINDAKİ KULLANICI LİSTESİ (DISCORD TARZI) */
-    .voice-members-list { margin: 2px 8px 8px 24px; display: flex; flex-direction: column; gap: 4px; }
-    .voice-member-item { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 4px; }
-    .voice-member-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
-    .voice-member-name { font-size: 13px; color: #949ba4; }
+    /* 1. EN SOL SUNUCU İKONLARI BARI */
+    #guilds-bar {
+      width: 72px;
+      background-color: #1e1f22;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 12px;
+      gap: 8px;
+      border-right: 1px solid #111214;
+    }
 
-    .user-panel { margin-top: auto; background-color: #232428; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-    .voice-status-box { background-color: #111214; padding: 8px 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 4px; }
-    .voice-status-header { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #23a55a; font-weight: bold; }
-    .voice-channel-title { font-size: 11px; color: #949ba4; }
-    .voice-controls { display: flex; gap: 6px; margin-top: 4px; }
+    .guild-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background-color: #313338;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+      transition: border-radius 0.2s, background-color 0.2s;
+    }
 
-    .btn { border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; color: white; }
-    .btn-green { background-color: #23a55a; }
-    .btn-red { background-color: #da373c; }
-    .btn-gray { background-color: #4e5058; }
+    .guild-icon.active {
+      background-color: #5865f2;
+      border-radius: 16px;
+    }
 
-    #chat-area { flex: 1; display: flex; flex-direction: column; background-color: #313338; }
-    .chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid #1f2023; font-weight: bold; }
-    #messages-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-    .message { display: flex; flex-direction: column; gap: 2px; }
-    .message-author { font-size: 13px; font-weight: bold; color: #f2f3f5; }
-    .message-content { font-size: 14px; color: #dbdee1; }
-    .chat-input-container { padding: 16px; background-color: #313338; }
-    .chat-input { width: 100%; padding: 12px 16px; background-color: #383a40; border: none; border-radius: 8px; color: #dbdee1; font-size: 14px; outline: none; }
+    .guild-icon.add-btn {
+      color: #23a55a;
+      font-size: 24px;
+    }
+
+    .guild-icon:hover {
+      border-radius: 16px;
+    }
+
+    /* 2. KANAL VE SOL PANEL */
+    #sidebar {
+      width: 240px;
+      background-color: #2b2d31;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-header {
+      height: 48px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #1f2023;
+      font-weight: bold;
+      color: #f2f3f5;
+    }
+
+    .server-title {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .header-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-xs {
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      color: white;
+    }
+
+    .btn-purple { background-color: #5865f2; }
+    .btn-red-sm { background-color: #da373c; }
+
+    .channel-section {
+      padding: 16px 8px 4px 16px;
+      font-size: 11px;
+      font-weight: bold;
+      color: #949ba4;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .add-channel-btn {
+      cursor: pointer;
+      color: #949ba4;
+      font-size: 14px;
+    }
+
+    .channel-btn {
+      display: flex;
+      align-items: center;
+      padding: 6px 10px;
+      margin: 2px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #949ba4;
+      font-size: 14px;
+    }
+
+    .channel-btn:hover {
+      background-color: #35373c;
+      color: #dbdee1;
+    }
+
+    .channel-btn.active {
+      background-color: #404249;
+      color: #ffffff;
+    }
+
+    .channel-icon {
+      margin-right: 8px;
+      color: #80848e;
+    }
+
+    /* Alt Kullanıcı Paneli */
+    .user-footer {
+      margin-top: auto;
+      height: 52px;
+      background-color: #232428;
+      padding: 0 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-avatar-sm {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #5865f2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+      font-size: 14px;
+    }
+
+    .user-details {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .user-name {
+      font-size: 13px;
+      font-weight: bold;
+      color: #f2f3f5;
+      max-width: 100px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .user-id {
+      font-size: 10px;
+      color: #23a55a;
+      font-weight: bold;
+    }
+
+    .user-controls {
+      display: flex;
+      gap: 4px;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      color: #949ba4;
+      padding: 4px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .icon-btn:hover {
+      background-color: #35373c;
+      color: #dbdee1;
+    }
+
+    /* 3. ANA CHAT ALANI */
+    #chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background-color: #313338;
+    }
+
+    .chat-header {
+      height: 48px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #1f2023;
+      background-color: #313338;
+    }
+
+    .chat-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: bold;
+      color: #f2f3f5;
+    }
+
+    .btn-add-friend {
+      background-color: #23a55a;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* Sesi Katıl Üst Kutusu */
+    .voice-banner {
+      margin: 16px 16px 0 16px;
+      padding: 12px 16px;
+      background-color: #2b2d31;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .voice-banner-info h4 {
+      font-size: 14px;
+      color: #f2f3f5;
+      margin-bottom: 2px;
+    }
+
+    .voice-banner-info p {
+      font-size: 12px;
+      color: #23a55a;
+    }
+
+    .btn-join-voice {
+      background-color: #5865f2;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    /* Mesaj Listesi */
+    #messages-container {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message-item {
+      display: flex;
+      gap: 12px;
+    }
+
+    .msg-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .bg-purple { background-color: #5865f2; }
+    .bg-yellow { background-color: #fee856; color: #000; }
+
+    .msg-body {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .msg-author {
+      font-size: 13px;
+      font-weight: bold;
+      color: #5865f2;
+    }
+
+    .msg-bubble {
+      background-color: #2b2d31;
+      padding: 8px 12px;
+      border-radius: 6px;
+      color: #dbdee1;
+      font-size: 14px;
+      width: fit-content;
+      max-width: 600px;
+    }
+
+    /* Mesaj Girdi Alanı */
+    .chat-input-wrapper {
+      padding: 0 16px 16px 16px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-box-container {
+      flex: 1;
+      background-color: #383a40;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+    }
+
+    .file-attach-btn {
+      background: none;
+      border: none;
+      color: #b5bac1;
+      font-size: 18px;
+      cursor: pointer;
+      margin-right: 8px;
+    }
+
+    .chat-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #dbdee1;
+      padding: 12px 0;
+      font-size: 14px;
+    }
+
+    .side-btn {
+      width: 40px;
+      height: 42px;
+      background-color: #2b2d31;
+      border: none;
+      border-radius: 8px;
+      color: #b5bac1;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-send {
+      background-color: #5865f2;
+      color: white;
+      border: none;
+      padding: 0 16px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
   </style>
-
-  <!-- Agora RTC Engine (Ses İletimi İçin En Kararlı Altyapı) -->
-  <script src="https://download.agora.io/sdk/web/AgoraRTC_N-4.20.0.js"></script>
 </head>
 <body>
 
+  <!-- 1. SOL İKON BARI -->
+  <div id="guilds-bar">
+    <div class="guild-icon active">N</div>
+    <div class="guild-icon">💬</div>
+    <div class="guild-icon">AN</div>
+    <div class="guild-icon">DE</div>
+    <div class="guild-icon add-btn">+</div>
+  </div>
+
+  <!-- 2. KANAL PANELSİ -->
   <div id="sidebar">
-    <div class="sidebar-header">NANCODA</div>
-    
-    <div class="channel-section">Yazı Kanalları</div>
-    <div class="channel-btn active" onclick="switchTextChannel('genel')">
-      <span class="channel-icon">#</span> genel
+    <div class="sidebar-header">
+      <span class="server-title">deneme</span>
+      <div class="header-btns">
+        <button class="btn-xs btn-purple">🔗 Davet</button>
+        <button class="btn-xs btn-red-sm">🚪 Çık</button>
+      </div>
     </div>
 
-    <div class="channel-section">Ses Kanalları</div>
-    <div class="channel-btn" id="voice-btn">
-      <span class="channel-icon">🔊</span> Sesli Sohbet
+    <div class="channel-section">
+      <span>YAZI KANALLARI</span>
+      <span class="add-channel-btn">+</span>
     </div>
-    
-    <!-- SESE KATILAN KULLANICILAR BURADA LİSTELENİR -->
-    <div id="voice-members-container" class="voice-members-list"></div>
+    <div class="channel-btn active">
+      <span class="channel-icon">💬</span> #genel-sohbet
+    </div>
 
-    <div class="user-panel">
-      <div class="voice-status-box">
-        <div class="voice-status-header">
-          <span>●</span> <span id="voice-status-text">Devre Dışı</span>
+    <div class="channel-section">
+      <span>SES KANALLARI</span>
+      <span class="add-channel-btn">+</span>
+    </div>
+    <div class="channel-btn">
+      <span class="channel-icon">🔊</span> sohbet
+    </div>
+
+    <!-- ALT KULLANICI DETAYI -->
+    <div class="user-footer">
+      <div class="user-info">
+        <div class="user-avatar-sm">N</div>
+        <div class="user-details">
+          <span class="user-name">Nancoda A...</span>
+          <span class="user-id">ID: #1</span>
         </div>
-        <div class="voice-channel-title" id="voice-channel-name">Bağlı Değil</div>
-        <div class="voice-controls">
-          <button class="btn btn-green" id="join-voice-btn" onclick="joinVoice()">Katıl</button>
-          <button class="btn btn-red" id="leave-voice-btn" style="display:none;" onclick="leaveVoice()">Ayrıl</button>
-          <button class="btn btn-gray" id="toggle-mic-btn" style="display:none;" onclick="toggleMic()">🎤 Mute</button>
-        </div>
+      </div>
+      <div class="user-controls">
+        <button class="icon-btn">✉️</button>
+        <button class="icon-btn">⚙️</button>
       </div>
     </div>
   </div>
 
+  <!-- 3. CHAT ALANI -->
   <div id="chat-area">
     <div class="chat-header">
-      <span style="color:#80848e; margin-right:8px;">#</span>
-      <span id="current-channel-title">genel</span>
+      <div class="chat-title">
+        <span style="color:#80848e;">💬</span> genel-sohbet
+      </div>
+      <button class="btn-add-friend">+ Arkadaş Ekle (ID)</button>
     </div>
-    <div id="messages-container"></div>
-    <div class="chat-input-container">
-      <input type="text" id="message-input" class="chat-input" placeholder="#genel kanalına mesaj gönder" onkeypress="handleKeyPress(event)" />
+
+    <!-- Ses Bağlantı Kutusu -->
+    <div class="voice-banner">
+      <div class="voice-banner-info">
+        <h4>Ses Kanalı Durumu: Bağlı Değil</h4>
+        <p>Aktif Bağlantı: Devre Dışı</p>
+      </div>
+      <button class="btn-join-voice">Sese Katıl</button>
+    </div>
+
+    <!-- Mesajlar -->
+    <div id="messages-container">
+
+      <div class="message-item">
+        <div class="msg-avatar bg-yellow">🤖</div>
+        <div class="msg-body">
+          <div class="msg-author" style="color: #949ba4;">am patlatan (#3)</div>
+          <div class="msg-bubble">ananızı patlatıyım</div>
+        </div>
+      </div>
+
+      <div class="message-item">
+        <div class="msg-avatar bg-purple">N</div>
+        <div class="msg-body">
+          <div class="msg-author">Nancoda Administor (#1)</div>
+          <div class="msg-bubble">huhuhu</div>
+        </div>
+      </div>
+
+      <div class="message-item">
+        <div class="msg-avatar bg-purple">N</div>
+        <div class="msg-body">
+          <div class="msg-author">Nancoda Administor (#1)</div>
+          <div class="msg-bubble">oluur</div>
+        </div>
+      </div>
+
+      <div class="message-item">
+        <div class="msg-avatar bg-yellow">🤖</div>
+        <div class="msg-body">
+          <div class="msg-author" style="color: #949ba4;">damacankuryesimehmet (#2)</div>
+          <div class="msg-bubble">bok gibi site</div>
+        </div>
+      </div>
+
+      <div class="message-item">
+        <div class="msg-avatar bg-yellow">🤖</div>
+        <div class="msg-body">
+          <div class="msg-author" style="color: #949ba4;">am patlatan (#3)</div>
+          <div class="msg-bubble">habiden</div>
+        </div>
+      </div>
+
+      <div class="message-item">
+        <div class="msg-avatar bg-purple">N</div>
+        <div class="msg-body">
+          <div class="msg-author">Nancoda Administor (#1)</div>
+          <div class="msg-bubble">haha</div>
+        </div>
+      </div>
+
+      <div class="message-item">
+        <div class="msg-avatar bg-yellow">🤖</div>
+        <div class="msg-body">
+          <div class="msg-author" style="color: #949ba4;">huhuhu (#5)</div>
+          <div class="msg-bubble">HAHAHAHA</div>
+        </div>
+      </div>
+
+      <div class="message-item">
+        <div class="msg-avatar bg-purple">N</div>
+        <div class="msg-body">
+          <div class="msg-author">Nancoda Administor (#1)</div>
+          <div class="msg-bubble">SEN KİMSİN LA</div>
+        </div>
+      </div>
+
+      <div class="message-item">
+        <div class="msg-avatar bg-yellow">🤖</div>
+        <div class="msg-body">
+          <div class="msg-author" style="color: #949ba4;">huhuhu (#5)</div>
+          <div class="msg-bubble">BEN OPTİMUS PIRAYIM</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Alt Mesaj Yazma Alanı -->
+    <div class="chat-input-wrapper">
+      <div class="input-box-container">
+        <button class="file-attach-btn">📎</button>
+        <input type="text" class="chat-input" placeholder="Mesajınızı yazın..." />
+      </div>
+      <button class="side-btn">🗀</button>
+      <button class="btn-send">Gönder</button>
     </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, push, onValue, set, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      databaseURL: "YOUR_DATABASE_URL",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    const randomId = Math.floor(Math.random() * 8999 + 1000);
-    const currentUserId = "User_" + randomId;
-    const currentUserAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${currentUserId}`;
-
-    // AGORA SETTINGS
-    const AGORA_APP_ID = "YOUR_AGORA_APP_ID"; // console.agora.io üzerinden aldığınız App ID
-    const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-    let localAudioTrack = null;
-    let isConnected = false;
-    let isMuted = false;
-
-    // --- YAZI MESAJLARI ---
-    window.handleKeyPress = function(e) {
-      if (e.key === 'Enter') {
-        const input = document.getElementById('message-input');
-        if (input.value.trim() !== "") {
-          push(ref(db, 'messages/genel'), {
-            author: currentUserId,
-            text: input.value.trim()
-          });
-          input.value = "";
-        }
-      }
-    };
-
-    onValue(ref(db, 'messages/genel'), (snapshot) => {
-      const container = document.getElementById('messages-container');
-      container.innerHTML = "";
-      const data = snapshot.val();
-      if (data) {
-        Object.values(data).forEach(msg => {
-          container.innerHTML += `
-            <div class="message">
-              <div class="message-author">${msg.author}</div>
-              <div class="message-content">${msg.text}</div>
-            </div>`;
-        });
-        container.scrollTop = container.scrollHeight;
-      }
-    });
-
-    // --- SESLİ KANAL LİSTESİ CANLI DİNLEME ---
-    onValue(ref(db, 'voiceMembers/SesliSohbet'), (snapshot) => {
-      const container = document.getElementById('voice-members-container');
-      container.innerHTML = "";
-      const data = snapshot.val();
-      if (data) {
-        Object.values(data).forEach(member => {
-          container.innerHTML += `
-            <div class="voice-member-item">
-              <img src="${member.avatar}" class="voice-member-avatar" />
-              <span class="voice-member-name">${member.name}</span>
-            </div>`;
-        });
-      }
-    });
-
-    // --- SES SİSTEMİ (AGORA & FIREBASE) ---
-    window.joinVoice = async function() {
-      try {
-        // Agora Ses Kanalına Katılma
-        await client.join(AGORA_APP_ID, "SesliSohbet", null, currentUserId);
-        localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        await client.publish([localAudioTrack]);
-
-        // Firebase Üye Kaydı
-        const userRef = ref(db, `voiceMembers/SesliSohbet/${currentUserId}`);
-        set(userRef, { name: currentUserId, avatar: currentUserAvatar });
-        onDisconnect(userRef).remove();
-
-        isConnected = true;
-        document.getElementById('voice-channel-name').innerText = "Sesli Sohbet";
-        document.getElementById('voice-status-text').innerText = "Ses Bağlandı";
-        document.getElementById('join-voice-btn').style.display = 'none';
-        document.getElementById('leave-voice-btn').style.display = 'inline-block';
-        document.getElementById('toggle-mic-btn').style.display = 'inline-block';
-      } catch (err) {
-        alert("Sese bağlanırken hata oluştu veya mikrofon izni verilmedi.");
-      }
-    };
-
-    client.on("user-published", async (user, mediaType) => {
-      await client.subscribe(user, mediaType);
-      if (mediaType === "audio") {
-        user.audioTrack.play();
-      }
-    });
-
-    window.toggleMic = function() {
-      if (!localAudioTrack) return;
-      isMuted = !isMuted;
-      localAudioTrack.setEnabled(!isMuted);
-      const btn = document.getElementById('toggle-mic-btn');
-      btn.innerText = isMuted ? "🎤 Unmute" : "🎤 Mute";
-      btn.style.backgroundColor = isMuted ? "#da373c" : "#4e5058";
-    };
-
-    window.leaveVoice = async function() {
-      if (localAudioTrack) {
-        localAudioTrack.close();
-      }
-      await client.leave();
-
-      remove(ref(db, `voiceMembers/SesliSohbet/${currentUserId}`));
-
-      isConnected = false;
-      document.getElementById('voice-channel-name').innerText = "Bağlı Değil";
-      document.getElementById('voice-status-text').innerText = "Devre Dışı";
-      document.getElementById('join-voice-btn').style.display = 'inline-block';
-      document.getElementById('leave-voice-btn').style.display = 'none';
-      document.getElementById('toggle-mic-btn').style.display = 'none';
-    };
-  </script>
 </body>
 </html>
