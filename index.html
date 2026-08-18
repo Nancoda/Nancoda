@@ -72,7 +72,7 @@
       font-size: 16px;
     }
 
-    /* SES KANALINDAKİ ÜYELERİN LİSTESİ (DISCORD STAGE / VOICE STYLE) */
+    /* Ses Kanalı Katılımcı Listesi */
     .voice-members-list {
       margin: 2px 8px 8px 24px;
       display: flex;
@@ -86,24 +86,18 @@
       gap: 8px;
       padding: 4px 8px;
       border-radius: 4px;
-      background-color: rgba(0, 0, 0, 0.15);
     }
 
     .voice-member-avatar {
-      width: 24px;
-      height: 24px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       object-fit: cover;
-      background-color: #5865f2;
     }
 
     .voice-member-name {
       font-size: 13px;
-      color: #dbdee1;
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      color: #949ba4;
     }
 
     /* Bottom Control Bar (Ses Durumu & Kullanıcı) */
@@ -231,6 +225,7 @@
 </head>
 <body>
 
+  <!-- Hidden Audio Element for WebRTC Stream -->
   <audio id="remoteAudio" autoplay></audio>
 
   <!-- Sol Menü -->
@@ -249,8 +244,6 @@
     <div class="channel-btn" id="voice-btn-sohbet">
       <span class="channel-icon">🔊</span> Sesli Sohbet
     </div>
-
-    <!-- Ses Kanalındaki Kullanıcılar Burada Listelenecek -->
     <div id="voice-members-container" class="voice-members-list"></div>
 
     <!-- Kullanıcı & Ses Durum Paneli -->
@@ -306,7 +299,6 @@
     let currentTextChannel = "genel";
     let activeVoiceChannel = null;
     
-    // Rastgele Kullanıcı Bilgisi (Avatar & Kullanıcı Adı)
     const randomId = Math.floor(Math.random() * 8999 + 1000);
     const currentUserId = "User_" + randomId;
     const currentUserAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${currentUserId}`;
@@ -366,7 +358,7 @@
       });
     }
 
-    // --- SES KANALI KULLANICILARINI CANLI DİNLEME (UI GÜNCELLEME) ---
+    // --- SES KANALI KULLANICILARI ---
     function listenVoiceMembers(channelName) {
       const membersRef = ref(db, `voiceMembers/${currentServer}/${channelName}`);
       onValue(membersRef, (snapshot) => {
@@ -387,7 +379,7 @@
       });
     }
 
-    // --- WEBRTC SESLİ SOHBET MANTIĞI ---
+    // --- WEBRTC SESLİ SOHBET ---
     window.joinVoice = async function(channelName) {
       if (activeVoiceChannel === channelName) return;
       if (activeVoiceChannel) leaveVoice();
@@ -402,19 +394,17 @@
         document.getElementById('leave-voice-btn').style.display = 'inline-block';
         document.getElementById('toggle-mic-btn').style.display = 'inline-block';
 
-        // Kullanıcıyı ses kanalının üye listesine ekle
         const userMemberRef = ref(db, `voiceMembers/${currentServer}/${channelName}/${currentUserId}`);
         set(userMemberRef, {
           name: currentUserId,
           avatar: currentUserAvatar
         });
         
-        // Sekme kapatılırsa Firebase'den otomatik sil
         onDisconnect(userMemberRef).remove();
 
         initWebRTC(channelName);
       } catch (err) {
-        alert("Mikrofon izni engellendi veya ses cihazı bulunamadı!");
+        alert("Mikrofon izni alınamadı!");
       }
     };
 
@@ -511,7 +501,6 @@
       document.getElementById('toggle-mic-btn').style.display = 'none';
     };
 
-    // Açılış Dinlemeleri
     loadMessages();
     listenVoiceMembers('Sesli Sohbet');
   </script>
