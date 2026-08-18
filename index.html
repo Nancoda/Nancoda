@@ -72,6 +72,40 @@
       font-size: 16px;
     }
 
+    /* SES KANALINDAKİ ÜYELERİN LİSTESİ (DISCORD STAGE / VOICE STYLE) */
+    .voice-members-list {
+      margin: 2px 8px 8px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .voice-member-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background-color: rgba(0, 0, 0, 0.15);
+    }
+
+    .voice-member-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      background-color: #5865f2;
+    }
+
+    .voice-member-name {
+      font-size: 13px;
+      color: #dbdee1;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     /* Bottom Control Bar (Ses Durumu & Kullanıcı) */
     .user-panel {
       margin-top: auto;
@@ -197,7 +231,6 @@
 </head>
 <body>
 
-  <!-- Hidden Audio Element for WebRTC Stream -->
   <audio id="remoteAudio" autoplay></audio>
 
   <!-- Sol Menü -->
@@ -216,6 +249,9 @@
     <div class="channel-btn" id="voice-btn-sohbet">
       <span class="channel-icon">🔊</span> Sesli Sohbet
     </div>
+
+    <!-- Ses Kanalındaki Kullanıcılar Burada Listelenecek -->
+    <div id="voice-members-container" class="voice-members-list"></div>
 
     <!-- Kullanıcı & Ses Durum Paneli -->
     <div class="user-panel">
@@ -250,9 +286,9 @@
   <!-- Firebase Integration -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, push, onValue, set, get, child, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, push, onValue, set, get, child, onChildAdded, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // FIREBASE YAPILANDIRMASI (Kendi Firebase Bilgilerin ile Değiştir)
+    // FIREBASE YAPILANDIRMASI
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_AUTH_DOMAIN",
@@ -266,13 +302,15 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Uygulama Değişkenleri
     const currentServer = "nancoda";
     let currentTextChannel = "genel";
     let activeVoiceChannel = null;
-    let currentUserId = "user_" + Math.floor(Math.random() * 10000);
     
-    // WebRTC Değişkenleri
+    // Rastgele Kullanıcı Bilgisi (Avatar & Kullanıcı Adı)
+    const randomId = Math.floor(Math.random() * 8999 + 1000);
+    const currentUserId = "User_" + randomId;
+    const currentUserAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${currentUserId}`;
+
     let localStream = null;
     let peerConnection = null;
     let isMuted = false;
@@ -284,7 +322,7 @@
       ]
     };
 
-    // --- YAZI SOHBETİ MANTIĞI ---
+    // --- YAZI SOHBETİ ---
     window.switchTextChannel = function(channelName) {
       currentTextChannel = channelName;
       document.getElementById('current-channel-title').innerText = channelName;
@@ -328,6 +366,27 @@
       });
     }
 
+    // --- SES KANALI KULLANICILARINI CANLI DİNLEME (UI GÜNCELLEME) ---
+    function listenVoiceMembers(channelName) {
+      const membersRef = ref(db, `voiceMembers/${currentServer}/${channelName}`);
+      onValue(membersRef, (snapshot) => {
+        const container = document.getElementById('voice-members-container');
+        container.innerHTML = "";
+        const data = snapshot.val();
+        if (data) {
+          Object.values(data).forEach(member => {
+            const memberEl = document.createElement('div');
+            memberEl.className = 'voice-member-item';
+            memberEl.innerHTML = `
+              <img src="${member.avatar}" class="voice-member-avatar" />
+              <span class="voice-member-name">${member.name}</span>
+            `;
+            container.appendChild(memberEl);
+          });
+        }
+      });
+    }
+
     // --- WEBRTC SESLİ SOHBET MANTIĞI ---
     window.joinVoice = async function(channelName) {
       if (activeVoiceChannel === channelName) return;
@@ -343,9 +402,19 @@
         document.getElementById('leave-voice-btn').style.display = 'inline-block';
         document.getElementById('toggle-mic-btn').style.display = 'inline-block';
 
+        // Kullanıcıyı ses kanalının üye listesine ekle
+        const userMemberRef = ref(db, `voiceMembers/${currentServer}/${channelName}/${currentUserId}`);
+        set(userMemberRef, {
+          name: currentUserId,
+          avatar: currentUserAvatar
+        });
+        
+        // Sekme kapatılırsa Firebase'den otomatik sil
+        onDisconnect(userMemberRef).remove();
+
         initWebRTC(channelName);
       } catch (err) {
-        alert("Mikrofon izni verilemedi veya tarayıcı tarafından engellendi!");
+        alert("Mikrofon izni engellendi veya ses cihazı bulunamadı!");
       }
     };
 
@@ -354,36 +423,30 @@
 
       peerConnection = new RTCPeerConnection(rtcConfig);
 
-      // Yerel mikrofon sesini peer bağlantısına ekle
       localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
-      // Karşı taraftan gelen ses akışını yakala ve çal
       peerConnection.ontrack = (event) => {
         const remoteAudio = document.getElementById('remoteAudio');
         remoteAudio.srcObject = event.streams[0];
         remoteAudio.play().catch(() => {});
       };
 
-      // ICE Adaylarını (Bağlantı Adreslerini) Firebase'e kaydet
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
           push(ref(db, `voiceSignals/${currentServer}/${channelName}/candidates/${currentUserId}`), event.candidate.toJSON());
         }
       };
 
-      // Odaya ilk giren miyiz yoksa var olan odaya mı katılıyoruz kontrolü
       get(child(signalRef, 'offers')).then(snapshot => {
         const offers = snapshot.val() || {};
         const existingUserIds = Object.keys(offers);
 
         if (existingUserIds.length === 0) {
-          // Oda boş, Teklif (Offer) oluştur
           peerConnection.createOffer().then(offer => {
             peerConnection.setLocalDescription(offer);
             set(ref(db, `voiceSignals/${currentServer}/${channelName}/offers/${currentUserId}`), offer);
           });
         } else {
-          // Odada biri var, onun teklifini alıp Yanıt (Answer) oluştur
           const targetUserId = existingUserIds[0];
           const offer = offers[targetUserId];
 
@@ -396,7 +459,6 @@
         }
       });
 
-      // Gelen Yanıtları (Answer) Dinle
       onValue(child(signalRef, 'answers'), snapshot => {
         const answers = snapshot.val() || {};
         Object.keys(answers).forEach(key => {
@@ -406,7 +468,6 @@
         });
       });
 
-      // Karşı Tarafın ICE Adaylarını Dinle
       onChildAdded(child(signalRef, 'candidates'), snapshot => {
         const candGroup = snapshot.val() || {};
         Object.values(candGroup).forEach(cand => {
@@ -439,6 +500,7 @@
       if (activeVoiceChannel) {
         remove(ref(db, `voiceSignals/${currentServer}/${activeVoiceChannel}/offers/${currentUserId}`));
         remove(ref(db, `voiceSignals/${currentServer}/${activeVoiceChannel}/answers/${currentUserId}`));
+        remove(ref(db, `voiceMembers/${currentServer}/${activeVoiceChannel}/${currentUserId}`));
       }
 
       activeVoiceChannel = null;
@@ -449,8 +511,9 @@
       document.getElementById('toggle-mic-btn').style.display = 'none';
     };
 
-    // İlk yüklemede mesajları getir
+    // Açılış Dinlemeleri
     loadMessages();
+    listenVoiceMembers('Sesli Sohbet');
   </script>
 </body>
 </html>
