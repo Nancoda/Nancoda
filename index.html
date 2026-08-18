@@ -3,9 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Nancoda</title>
-  <!-- Firebase SDK (v9 Compatibility Mode) -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
     body { display: flex; height: 100vh; background-color: #313338; color: #dbdee1; overflow: hidden; }
@@ -68,7 +65,7 @@
     .channel-item:hover { background-color: #35373c; color: #dbdee1; }
     .channel-item.active { background-color: #404249; color: #fff; }
 
-    /* Kullanıcı Bilgi Paneli (Sol Alt) */
+    /* Kullanıcı Bilgi Paneli */
     .user-profile-bar { height: 52px; background-color: #232428; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #1f2023; }
     .user-profile-info { display: flex; flex-direction: column; }
     .user-profile-name { font-size: 14px; font-weight: bold; color: #fff; }
@@ -100,7 +97,7 @@
       <h2>Nancoda'ya Giriş Yap</h2>
       <p>Devam etmek için Google hesabınla giriş yapman gerekiyor.</p>
       
-      <button class="google-btn" onclick="openGooglePopup()">
+      <button class="google-btn" id="open-google-btn">
         <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.616z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
         Google ile Oturum Aç
       </button>
@@ -115,9 +112,9 @@
       <div id="google-step-email">
         <h3>Oturum Açın</h3>
         <p>Nancoda uygulamasına devam et</p>
-        <input type="email" id="google-email-input" class="google-input" placeholder="E-posta veya telefon" onkeydown="if(event.key==='Enter') goToPasswordStep()">
+        <input type="email" id="google-email-input" class="google-input" placeholder="E-posta veya telefon">
         <div class="google-actions">
-          <button class="google-next-btn" onclick="goToPasswordStep()">Sonraki</button>
+          <button class="google-next-btn" id="email-next-btn">Sonraki</button>
         </div>
       </div>
 
@@ -126,9 +123,9 @@
         <div class="account-badge" id="display-user-email">
           <span>user@gmail.com</span>
         </div>
-        <input type="password" id="google-password-input" class="google-input" placeholder="Şifrenizi girin" onkeydown="if(event.key==='Enter') goToCaptchaStep()">
+        <input type="password" id="google-password-input" class="google-input" placeholder="Şifrenizi girin">
         <div class="google-actions">
-          <button class="google-next-btn" onclick="goToCaptchaStep()">Sonraki</button>
+          <button class="google-next-btn" id="pass-next-btn">Sonraki</button>
         </div>
       </div>
 
@@ -138,7 +135,7 @@
         
         <div class="recaptcha-card">
           <div class="recaptcha-left">
-            <div class="recaptcha-checkbox" id="captcha-box" onclick="triggerCaptcha()">
+            <div class="recaptcha-checkbox" id="captcha-box">
               <div class="spinner" id="captcha-spinner"></div>
               <div class="checkmark" id="captcha-check">&#10003;</div>
             </div>
@@ -151,7 +148,7 @@
         </div>
 
         <div class="google-actions">
-          <button class="google-next-btn" id="captcha-finish-btn" onclick="verifyGoogleAuth()" style="opacity:0.5; cursor:not-allowed;" disabled>Devam Et</button>
+          <button class="google-next-btn" id="captcha-finish-btn" style="opacity:0.5; cursor:not-allowed;" disabled>Devam Et</button>
         </div>
       </div>
 
@@ -163,19 +160,19 @@
     <div class="auth-card">
       <h2>Kullanıcı Adı Seç</h2>
       <p>Lütfen kendine özgün bir kullanıcı adı belirle.</p>
-      <input type="text" id="username-input" class="auth-input" placeholder="Kullanıcı adı..." onkeydown="if(event.key==='Enter') saveUsername()">
-      <button class="auth-btn" onclick="saveUsername()">Kaydet ve Giriş Yap</button>
+      <input type="text" id="username-input" class="auth-input" placeholder="Kullanıcı adı...">
+      <button class="auth-btn" id="save-username-btn">Kaydet ve Giriş Yap</button>
     </div>
   </div>
 
   <!-- ARKADAŞ İSTEKLERİ MODALI -->
   <div id="friends-modal" class="auth-overlay" style="display: none;">
     <div class="auth-card">
-      <span style="position:absolute; top:12px; right:16px; cursor:pointer; color:#aaa; font-weight:bold;" onclick="closeFriendsModal()">X</span>
+      <span style="position:absolute; top:12px; right:16px; cursor:pointer; color:#aaa; font-weight:bold;" id="close-friends-btn">X</span>
       <h2>Arkadaşlık İstekleri</h2>
       <p>Sana gelen istekleri kabul et veya reddet.</p>
       <div id="requests-list" style="width:100%; max-height:200px; overflow-y:auto; margin-bottom:15px;"></div>
-      <button class="auth-btn" style="background-color:#4e5058;" onclick="closeFriendsModal()">Kapat</button>
+      <button class="auth-btn" style="background-color:#4e5058;" id="close-friends-btn-2">Kapat</button>
     </div>
   </div>
 
@@ -183,26 +180,26 @@
   <div id="app-container">
     <div id="servers-bar">
       <div id="server-list-container" style="display:flex; flex-direction:column; gap:8px;"></div>
-      <div class="server-icon add-server" onclick="createCustomServer()" title="Sunucu Oluştur">+</div>
+      <div class="server-icon add-server" id="create-server-btn" title="Sunucu Oluştur">+</div>
     </div>
 
     <div id="channels-bar">
       <div>
         <div class="server-header">
           <span id="current-server-title">Ana Sunucu</span>
-          <button style="padding:2px 6px; font-size:11px;" onclick="copyInviteLink()" title="Davet Linkini Kopyala">🔗 Davet</button>
+          <button style="padding:2px 6px; font-size:11px;" id="copy-invite-btn" title="Davet Linkini Kopyala">🔗 Davet</button>
         </div>
 
         <div class="channels-list">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px; margin-bottom:5px;">
             <span style="font-size:12px; font-weight:bold; color:#949ba4;">YAZI KANALLARI</span>
-            <button style="padding:2px 6px; font-size:12px;" onclick="createTextChannel()">+</button>
+            <button style="padding:2px 6px; font-size:12px;" id="add-text-channel-btn">+</button>
           </div>
           <div id="text-channel-container"></div>
 
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px; margin-bottom:5px;">
             <span style="font-size:12px; font-weight:bold; color:#949ba4;">SES KANALLARI</span>
-            <button style="padding:2px 6px; font-size:12px;" onclick="createVoiceChannel()">+</button>
+            <button style="padding:2px 6px; font-size:12px;" id="add-voice-channel-btn">+</button>
           </div>
           <div id="voice-channel-container"></div>
         </div>
@@ -213,7 +210,7 @@
           <span class="user-profile-name" id="my-username-display">Yükleniyor...</span>
           <span class="user-profile-id" id="my-id-display">ID: #0</span>
         </div>
-        <button style="padding:4px 8px; font-size:11px; background:#4e5058;" onclick="openFriendsModal()">İstekler</button>
+        <button style="padding:4px 8px; font-size:11px; background:#4e5058;" id="open-friends-btn">İstekler</button>
       </div>
     </div>
 
@@ -221,7 +218,7 @@
       <div class="chat-header">
         <span id="current-channel-title">💬 genel-sohbet</span>
         <div>
-          <button style="padding:4px 10px; font-size:12px; background-color:#23a55a;" onclick="sendFriendRequest()">➕ Arkadaş Ekle (ID)</button>
+          <button style="padding:4px 10px; font-size:12px; background-color:#23a55a;" id="add-friend-btn">➕ Arkadaş Ekle (ID)</button>
         </div>
       </div>
       
@@ -231,45 +228,56 @@
           <div class="user-count">Kapasite: <span id="online-count">1</span> / 100 Kişi</div>
         </div>
         <div style="display:flex; gap:10px;">
-          <button onclick="joinVoice()">Sese Katıl</button>
-          <button onclick="leaveVoice()" style="background-color:#da373c;">Ayrıl</button>
+          <button id="join-voice-btn">Sese Katıl</button>
+          <button id="leave-voice-btn" style="background-color:#da373c;">Ayrıl</button>
         </div>
       </div>
 
       <div id="chat-box"></div>
 
       <div id="input-area">
-        <input type="text" id="msgInput" placeholder="Mesajınızı yazın..." onkeydown="if(event.key === 'Enter') sendMessage()">
-        <button onclick="sendMessage()">Gönder</button>
+        <input type="text" id="msgInput" placeholder="Mesajınızı yazın...">
+        <button id="send-msg-btn">Gönder</button>
       </div>
 
       <audio id="remoteAudio" autoplay></audio>
     </div>
   </div>
 
-  <script>
-    // --- FIREBASE AYARLARI ---
+  <!-- FIREBASE MODULE INTEGRATION -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-analytics.js";
+    import { getDatabase, ref, set, push, onValue, get, child, remove } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
+
     const firebaseConfig = {
-      databaseURL: "https://nancoda-chat-default-rtdb.firebaseio.com"
+      apiKey: "AIzaSyAFM1QhJmzxEb5-9yWapL8PR608QoyZ1e0",
+      authDomain: "nancoda-62757.firebaseapp.com",
+      databaseURL: "https://nancoda-62757-default-rtdb.firebaseio.com",
+      projectId: "nancoda-62757",
+      storageBucket: "nancoda-62757.firebasestorage.app",
+      messagingSenderId: "626447178448",
+      appId: "1:626447178448:web:323a38249a728fb7fd9cd5",
+      measurementId: "G-CRKE57BZYR"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getDatabase(app);
 
     let currentUser = localStorage.getItem('nc_username') || null;
     let currentUserId = localStorage.getItem('nc_userid') || null;
-    
     let currentServer = "Ana Sunucu";
     let currentChannel = "genel-sohbet";
-
     let isCaptchaVerified = false;
 
-    window.onload = function() {
+    window.addEventListener('DOMContentLoaded', () => {
       // Varsayılan Sunucu Kurulumu
-      db.ref('servers/Ana Sunucu/textChannels').once('value', snapshot => {
+      get(child(ref(db), 'servers/Ana Sunucu/textChannels')).then(snapshot => {
         if (!snapshot.exists()) {
-          db.ref('servers/Ana Sunucu/textChannels/genel-sohbet').set(true);
-          db.ref('servers/Ana Sunucu/textChannels/duyurular').set(true);
-          db.ref('servers/Ana Sunucu/voiceChannels/Genel Ses Odasi').set(true);
+          set(ref(db, 'servers/Ana Sunucu/textChannels/genel-sohbet'), true);
+          set(ref(db, 'servers/Ana Sunucu/textChannels/duyurular'), true);
+          set(ref(db, 'servers/Ana Sunucu/voiceChannels/Genel Ses Odasi'), true);
         }
       });
 
@@ -287,7 +295,38 @@
         document.getElementById('username-modal').style.display = 'none';
         initApp();
       }
-    };
+
+      setupEventListeners();
+    });
+
+    function setupEventListeners() {
+      document.getElementById('open-google-btn').onclick = openGooglePopup;
+      document.getElementById('email-next-btn').onclick = goToPasswordStep;
+      document.getElementById('pass-next-btn').onclick = goToCaptchaStep;
+      document.getElementById('captcha-box').onclick = triggerCaptcha;
+      document.getElementById('captcha-finish-btn').onclick = verifyGoogleAuth;
+      document.getElementById('save-username-btn').onclick = saveUsername;
+      
+      document.getElementById('google-email-input').onkeydown = (e) => { if(e.key === 'Enter') goToPasswordStep(); };
+      document.getElementById('google-password-input').onkeydown = (e) => { if(e.key === 'Enter') goToCaptchaStep(); };
+      document.getElementById('username-input').onkeydown = (e) => { if(e.key === 'Enter') saveUsername(); };
+
+      document.getElementById('send-msg-btn').onclick = sendMessage;
+      document.getElementById('msgInput').onkeydown = (e) => { if(e.key === 'Enter') sendMessage(); };
+
+      document.getElementById('create-server-btn').onclick = createCustomServer;
+      document.getElementById('add-text-channel-btn').onclick = createTextChannel;
+      document.getElementById('add-voice-channel-btn').onclick = createVoiceChannel;
+      document.getElementById('copy-invite-btn').onclick = copyInviteLink;
+
+      document.getElementById('add-friend-btn').onclick = sendFriendRequest;
+      document.getElementById('open-friends-btn').onclick = () => { document.getElementById('friends-modal').style.display = 'flex'; };
+      document.getElementById('close-friends-btn').onclick = () => { document.getElementById('friends-modal').style.display = 'none'; };
+      document.getElementById('close-friends-btn-2').onclick = () => { document.getElementById('friends-modal').style.display = 'none'; };
+
+      document.getElementById('join-voice-btn').onclick = joinVoice;
+      document.getElementById('leave-voice-btn').onclick = leaveVoice;
+    }
 
     function openGooglePopup() {
       document.getElementById('google-popup-overlay').style.display = 'flex';
@@ -299,18 +338,14 @@
     function goToPasswordStep() {
       const email = document.getElementById('google-email-input').value.trim();
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
       if (!email || !emailRegex.test(email)) {
         alert("Lütfen geçerli bir e-posta adresi yazın!");
         return;
       }
-
       document.getElementById('display-user-email').innerHTML = `<span>👤 ${email}</span>`;
       document.getElementById('google-step-email').style.display = 'none';
       document.getElementById('google-step-password').style.display = 'block';
     }
-
-    function goToPasswordStep() {} 
 
     function goToCaptchaStep() {
       const password = document.getElementById('google-password-input').value;
@@ -318,25 +353,21 @@
         alert("Lütfen geçerli bir şifre girin!");
         return;
       }
-
       document.getElementById('google-step-password').style.display = 'none';
       document.getElementById('google-step-captcha').style.display = 'block';
     }
 
     function triggerCaptcha() {
       if (isCaptchaVerified) return;
-
       const spinner = document.getElementById('captcha-spinner');
       const checkmark = document.getElementById('captcha-check');
       const finishBtn = document.getElementById('captcha-finish-btn');
-
       spinner.style.display = 'block';
 
       setTimeout(() => {
         spinner.style.display = 'none';
         checkmark.style.display = 'block';
         isCaptchaVerified = true;
-        
         finishBtn.style.opacity = '1';
         finishBtn.style.cursor = 'pointer';
         finishBtn.disabled = false;
@@ -345,23 +376,19 @@
 
     function verifyGoogleAuth() {
       if (!isCaptchaVerified) return;
-
       document.getElementById('google-popup-overlay').style.display = 'none';
       document.getElementById('login-modal').style.display = 'none';
       document.getElementById('username-modal').style.display = 'flex';
     }
 
     function saveUsername() {
-      const input = document.getElementById('username-input');
-      const username = input.value.trim();
-
+      const username = document.getElementById('username-input').value.trim();
       if (!username) {
         alert("Lütfen geçerli bir kullanıcı adı girin!");
         return;
       }
 
-      // FIREBASE CANLI ID ALMA (Çakışmasız Sıralı ID)
-      db.ref('users').once('value', snapshot => {
+      get(child(ref(db), 'users')).then(snapshot => {
         const users = snapshot.val() || {};
         const userList = Object.values(users);
 
@@ -371,11 +398,10 @@
         }
 
         const newId = userList.length + 1;
-        
         currentUser = username;
         currentUserId = newId;
 
-        db.ref('users/' + currentUserId).set({
+        set(ref(db, 'users/' + currentUserId), {
           id: currentUserId,
           name: currentUser
         });
@@ -398,9 +424,8 @@
       listenFriendRequests();
     }
 
-    /* --- CANLI VERİTABANI DİNLEYİCİLERİ --- */
     function listenServers() {
-      db.ref('servers').on('value', snapshot => {
+      onValue(ref(db, 'servers'), snapshot => {
         const servers = snapshot.val() || {};
         const container = document.getElementById('server-list-container');
         container.innerHTML = '';
@@ -416,7 +441,7 @@
     }
 
     function listenChannels() {
-      db.ref(`servers/${currentServer}`).on('value', snapshot => {
+      onValue(ref(db, `servers/${currentServer}`), snapshot => {
         const data = snapshot.val() || {};
         const textChannels = data.textChannels || {};
         const voiceChannels = data.voiceChannels || {};
@@ -446,7 +471,7 @@
       const sanitizedServer = currentServer.replace(/[.#$/[\]]/g, "_");
       const sanitizedChannel = currentChannel.replace(/[.#$/[\]]/g, "_");
 
-      db.ref(`messages/${sanitizedServer}/${sanitizedChannel}`).on('value', snapshot => {
+      onValue(ref(db, `messages/${sanitizedServer}/${sanitizedChannel}`), snapshot => {
         const msgBox = document.getElementById('chat-box');
         msgBox.innerHTML = '';
         const msgs = snapshot.val() || {};
@@ -469,7 +494,7 @@
       const sanitizedServer = currentServer.replace(/[.#$/[\]]/g, "_");
       const sanitizedChannel = currentChannel.replace(/[.#$/[\]]/g, "_");
 
-      db.ref(`messages/${sanitizedServer}/${sanitizedChannel}`).push({
+      push(ref(db, `messages/${sanitizedServer}/${sanitizedChannel}`), {
         user: `${currentUser} (#${currentUserId})`,
         text: text,
         timestamp: Date.now()
@@ -478,7 +503,6 @@
       input.value = '';
     }
 
-    /* --- ARKADAŞLIK SİSTEMİ (CANLI) --- */
     function sendFriendRequest() {
       const targetId = prompt("Eklemek istediğin arkadaşının ID numarasını gir:");
       if (!targetId) return;
@@ -488,14 +512,14 @@
         return;
       }
 
-      db.ref('users/' + targetId).once('value', snapshot => {
+      get(child(ref(db), 'users/' + targetId)).then(snapshot => {
         if (!snapshot.exists()) {
           alert("Bu ID'ye sahip bir kullanıcı bulunamadı!");
           return;
         }
 
         const targetUser = snapshot.val();
-        db.ref(`friendRequests/${targetId}/${currentUserId}`).set({
+        set(ref(db, `friendRequests/${targetId}/${currentUserId}`), {
           fromId: currentUserId,
           fromName: currentUser
         });
@@ -505,7 +529,7 @@
     }
 
     function listenFriendRequests() {
-      db.ref(`friendRequests/${currentUserId}`).on('value', snapshot => {
+      onValue(ref(db, `friendRequests/${currentUserId}`), snapshot => {
         const requests = snapshot.val() || {};
         const container = document.getElementById('requests-list');
         container.innerHTML = '';
@@ -523,34 +547,34 @@
           div.innerHTML = `
             <span style="font-size:13px; color:#fff;"><b>${req.fromName}</b> (ID: #${req.fromId})</span>
             <div>
-              <button class="btn-sm" style="background-color:#23a55a;" onclick="acceptRequest(${req.fromId})">Kabul Et</button>
-              <button class="btn-sm" style="background-color:#da373c;" onclick="rejectRequest(${req.fromId})">Reddet</button>
+              <button class="btn-sm accept-btn" style="background-color:#23a55a;">Kabul Et</button>
+              <button class="btn-sm reject-btn" style="background-color:#da373c;">Reddet</button>
             </div>
           `;
+          
+          div.querySelector('.accept-btn').onclick = () => acceptRequest(req.fromId);
+          div.querySelector('.reject-btn').onclick = () => rejectRequest(req.fromId);
+
           container.appendChild(div);
         });
       });
     }
 
     function acceptRequest(fromId) {
-      db.ref(`friends/${currentUserId}/${fromId}`).set(true);
-      db.ref(`friends/${fromId}/${currentUserId}`).set(true);
-      db.ref(`friendRequests/${currentUserId}/${fromId}`).remove();
+      set(ref(db, `friends/${currentUserId}/${fromId}`), true);
+      set(ref(db, `friends/${fromId}/${currentUserId}`), true);
+      remove(ref(db, `friendRequests/${currentUserId}/${fromId}`));
       alert("Arkadaşlık isteği kabul edildi!");
     }
 
     function rejectRequest(fromId) {
-      db.ref(`friendRequests/${currentUserId}/${fromId}`).remove();
+      remove(ref(db, `friendRequests/${currentUserId}/${fromId}`));
     }
 
-    function openFriendsModal() { document.getElementById('friends-modal').style.display = 'flex'; }
-    function closeFriendsModal() { document.getElementById('friends-modal').style.display = 'none'; }
-
-    /* --- SUNUCU VE KANAL OLUŞTURMA --- */
     function createCustomServer() {
       const name = prompt("Yeni Sunucu Adı:");
       if (name) {
-        db.ref(`servers/${name}/textChannels/genel-sohbet`).set(true);
+        set(ref(db, `servers/${name}/textChannels/genel-sohbet`), true);
         switchServer(name);
       }
     }
@@ -558,7 +582,7 @@
     function createTextChannel() {
       const name = prompt("Yeni Yazı Kanalı Adı:");
       if (name) {
-        db.ref(`servers/${currentServer}/textChannels/${name}`).set(true);
+        set(ref(db, `servers/${currentServer}/textChannels/${name}`), true);
         selectChannel(name);
       }
     }
@@ -566,7 +590,7 @@
     function createVoiceChannel() {
       const name = prompt("Yeni Ses Kanalı Adı:");
       if (name) {
-        db.ref(`servers/${currentServer}/voiceChannels/${name}`).set(true);
+        set(ref(db, `servers/${currentServer}/voiceChannels/${name}`), true);
       }
     }
 
