@@ -9,7 +9,7 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     body {
@@ -18,9 +18,10 @@
       background-color: #1e1f22;
       color: #dbdee1;
       overflow: hidden;
+      user-select: none;
     }
 
-    /* 1. EN SOL SUNUCU İKONLARI BARI */
+    /* 1. EN SOL SUNUCU BARI */
     #guilds-bar {
       width: 72px;
       background-color: #1e1f22;
@@ -28,8 +29,8 @@
       flex-direction: column;
       align-items: center;
       padding-top: 12px;
-      gap: 8px;
-      border-right: 1px solid #111214;
+      gap: 12px;
+      flex-shrink: 0;
     }
 
     .guild-icon {
@@ -40,11 +41,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: bold;
-      color: white;
+      font-weight: 700;
+      color: #f2f3f5;
       cursor: pointer;
-      font-size: 16px;
-      transition: border-radius 0.2s, background-color 0.2s;
+      font-size: 18px;
+      transition: all 0.2s ease;
+      position: relative;
     }
 
     .guild-icon.active {
@@ -54,19 +56,21 @@
 
     .guild-icon.add-btn {
       color: #23a55a;
-      font-size: 24px;
+      font-size: 26px;
+      font-weight: 300;
     }
 
     .guild-icon:hover {
       border-radius: 16px;
     }
 
-    /* 2. KANAL VE SOL PANEL */
+    /* 2. SOL KANAL LİSTESİ */
     #sidebar {
       width: 240px;
       background-color: #2b2d31;
       display: flex;
       flex-direction: column;
+      flex-shrink: 0;
     }
 
     .sidebar-header {
@@ -76,13 +80,13 @@
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid #1f2023;
-      font-weight: bold;
-      color: #f2f3f5;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
 
     .server-title {
       font-size: 15px;
-      font-weight: 700;
+      font-weight: 800;
+      color: #f2f3f5;
     }
 
     .header-btns {
@@ -95,40 +99,54 @@
       padding: 4px 8px;
       border-radius: 4px;
       font-size: 11px;
-      font-weight: bold;
+      font-weight: 700;
       cursor: pointer;
       color: white;
+      display: flex;
+      align-items: center;
+      gap: 3px;
     }
 
     .btn-purple { background-color: #5865f2; }
+    .btn-purple:hover { background-color: #4752c4; }
     .btn-red-sm { background-color: #da373c; }
+    .btn-red-sm:hover { background-color: #a1282c; }
 
     .channel-section {
-      padding: 16px 8px 4px 16px;
+      padding: 18px 8px 6px 16px;
       font-size: 11px;
-      font-weight: bold;
+      font-weight: 700;
       color: #949ba4;
-      text-transform: uppercase;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      letter-spacing: 0.02em;
     }
 
     .add-channel-btn {
       cursor: pointer;
       color: #949ba4;
-      font-size: 14px;
+      font-size: 16px;
+      line-height: 1;
+      width: 18px;
+      height: 18px;
+      background: #383a40;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .channel-btn {
       display: flex;
       align-items: center;
-      padding: 6px 10px;
+      padding: 8px 10px;
       margin: 2px 8px;
       border-radius: 4px;
       cursor: pointer;
       color: #949ba4;
       font-size: 14px;
+      font-weight: 500;
     }
 
     .channel-btn:hover {
@@ -143,15 +161,15 @@
 
     .channel-icon {
       margin-right: 8px;
-      color: #80848e;
+      font-size: 15px;
     }
 
-    /* Alt Kullanıcı Paneli */
+    /* Alt Kullanıcı Bilgisi */
     .user-footer {
       margin-top: auto;
       height: 52px;
       background-color: #232428;
-      padding: 0 8px;
+      padding: 0 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -160,7 +178,7 @@
     .user-info {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
     .user-avatar-sm {
@@ -171,9 +189,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: bold;
+      font-weight: 800;
       color: white;
-      font-size: 14px;
+      font-size: 15px;
     }
 
     .user-details {
@@ -183,33 +201,36 @@
 
     .user-name {
       font-size: 13px;
-      font-weight: bold;
+      font-weight: 700;
       color: #f2f3f5;
-      max-width: 100px;
+      max-width: 90px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .user-id {
-      font-size: 10px;
+      font-size: 11px;
       color: #23a55a;
-      font-weight: bold;
+      font-weight: 700;
     }
 
     .user-controls {
       display: flex;
-      gap: 4px;
+      gap: 6px;
     }
 
     .icon-btn {
       background: none;
       border: none;
-      color: #949ba4;
+      color: #b5bac1;
       padding: 4px;
       cursor: pointer;
       border-radius: 4px;
       font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .icon-btn:hover {
@@ -217,12 +238,13 @@
       color: #dbdee1;
     }
 
-    /* 3. ANA CHAT ALANI */
+    /* 3. SAĞ CHAT ALANI */
     #chat-area {
       flex: 1;
       display: flex;
       flex-direction: column;
       background-color: #313338;
+      min-width: 0;
     }
 
     .chat-header {
@@ -233,31 +255,38 @@
       justify-content: space-between;
       border-bottom: 1px solid #1f2023;
       background-color: #313338;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
 
     .chat-title {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-weight: bold;
+      font-weight: 700;
       color: #f2f3f5;
+      font-size: 15px;
     }
 
     .btn-add-friend {
       background-color: #23a55a;
       color: white;
       border: none;
-      padding: 6px 12px;
+      padding: 6px 14px;
       border-radius: 4px;
-      font-size: 12px;
-      font-weight: bold;
+      font-size: 13px;
+      font-weight: 700;
       cursor: pointer;
+      transition: background 0.2s;
     }
 
-    /* Sesi Katıl Üst Kutusu */
+    .btn-add-friend:hover {
+      background-color: #1d8a4b;
+    }
+
+    /* Üst Ses Bağlantı Kutusu */
     .voice-banner {
-      margin: 16px 16px 0 16px;
-      padding: 12px 16px;
+      margin: 16px;
+      padding: 14px 18px;
       background-color: #2b2d31;
       border-radius: 8px;
       display: flex;
@@ -266,28 +295,35 @@
     }
 
     .voice-banner-info h4 {
-      font-size: 14px;
+      font-size: 15px;
       color: #f2f3f5;
+      font-weight: 700;
       margin-bottom: 2px;
     }
 
     .voice-banner-info p {
-      font-size: 12px;
+      font-size: 13px;
       color: #23a55a;
+      font-weight: 500;
     }
 
     .btn-join-voice {
       background-color: #5865f2;
       color: white;
       border: none;
-      padding: 8px 16px;
+      padding: 8px 18px;
       border-radius: 4px;
-      font-weight: bold;
+      font-weight: 700;
       font-size: 13px;
       cursor: pointer;
+      transition: background 0.2s;
     }
 
-    /* Mesaj Listesi */
+    .btn-join-voice:hover {
+      background-color: #4752c4;
+    }
+
+    /* Mesaj Listesi Akışı */
     #messages-container {
       flex: 1;
       padding: 16px;
@@ -300,6 +336,7 @@
     .message-item {
       display: flex;
       gap: 12px;
+      align-items: flex-start;
     }
 
     .msg-avatar {
@@ -309,14 +346,13 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: bold;
-      color: white;
-      font-size: 16px;
+      font-weight: 800;
+      font-size: 18px;
       flex-shrink: 0;
     }
 
-    .bg-purple { background-color: #5865f2; }
-    .bg-yellow { background-color: #fee856; color: #000; }
+    .bg-purple { background-color: #5865f2; color: white; }
+    .bg-yellow { background-color: #fee856; color: #111214; }
 
     .msg-body {
       display: flex;
@@ -326,25 +362,30 @@
 
     .msg-author {
       font-size: 13px;
-      font-weight: bold;
-      color: #5865f2;
+      font-weight: 700;
     }
+
+    .msg-author.blue { color: #5865f2; }
+    .msg-author.gray { color: #80848e; }
 
     .msg-bubble {
       background-color: #2b2d31;
-      padding: 8px 12px;
-      border-radius: 6px;
-      color: #dbdee1;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: #f2f3f5;
       font-size: 14px;
       width: fit-content;
-      max-width: 600px;
+      max-width: 650px;
+      line-height: 1.4;
+      word-break: break-word;
     }
 
-    /* Mesaj Girdi Alanı */
+    /* Alt Mesaj Input Alanı */
     .chat-input-wrapper {
       padding: 0 16px 16px 16px;
       display: flex;
       gap: 8px;
+      align-items: center;
     }
 
     .input-box-container {
@@ -354,15 +395,18 @@
       display: flex;
       align-items: center;
       padding: 0 12px;
+      height: 44px;
     }
 
     .file-attach-btn {
       background: none;
       border: none;
       color: #b5bac1;
-      font-size: 18px;
+      font-size: 20px;
       cursor: pointer;
       margin-right: 8px;
+      display: flex;
+      align-items: center;
     }
 
     .chat-input {
@@ -371,18 +415,21 @@
       border: none;
       outline: none;
       color: #dbdee1;
-      padding: 12px 0;
       font-size: 14px;
     }
 
+    .chat-input::placeholder {
+      color: #80848e;
+    }
+
     .side-btn {
-      width: 40px;
-      height: 42px;
+      width: 44px;
+      height: 44px;
       background-color: #2b2d31;
       border: none;
       border-radius: 8px;
       color: #b5bac1;
-      font-size: 16px;
+      font-size: 18px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -393,16 +440,23 @@
       background-color: #5865f2;
       color: white;
       border: none;
-      padding: 0 16px;
+      padding: 0 20px;
+      height: 44px;
       border-radius: 8px;
-      font-weight: bold;
+      font-weight: 700;
+      font-size: 14px;
       cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-send:hover {
+      background-color: #4752c4;
     }
   </style>
 </head>
 <body>
 
-  <!-- 1. SOL İKON BARI -->
+  <!-- 1. SUNUCU İKONLARI -->
   <div id="guilds-bar">
     <div class="guild-icon active">N</div>
     <div class="guild-icon">💬</div>
@@ -411,13 +465,13 @@
     <div class="guild-icon add-btn">+</div>
   </div>
 
-  <!-- 2. KANAL PANELSİ -->
+  <!-- 2. KANAL PANENLİ -->
   <div id="sidebar">
     <div class="sidebar-header">
       <span class="server-title">deneme</span>
       <div class="header-btns">
-        <button class="btn-xs btn-purple">🔗 Davet</button>
-        <button class="btn-xs btn-red-sm">🚪 Çık</button>
+        <button class="btn-xs btn-purple"><span>🔗</span> Davet</button>
+        <button class="btn-xs btn-red-sm"><span>🚪</span> Çık</button>
       </div>
     </div>
 
@@ -453,7 +507,7 @@
     </div>
   </div>
 
-  <!-- 3. CHAT ALANI -->
+  <!-- 3. SAĞ CHAT ALANI -->
   <div id="chat-area">
     <div class="chat-header">
       <div class="chat-title">
@@ -471,13 +525,13 @@
       <button class="btn-join-voice">Sese Katıl</button>
     </div>
 
-    <!-- Mesajlar -->
+    <!-- Mesaj Akışı -->
     <div id="messages-container">
 
       <div class="message-item">
         <div class="msg-avatar bg-yellow">🤖</div>
         <div class="msg-body">
-          <div class="msg-author" style="color: #949ba4;">am patlatan (#3)</div>
+          <div class="msg-author blue">am patlatan (#3)</div>
           <div class="msg-bubble">ananızı patlatıyım</div>
         </div>
       </div>
@@ -485,7 +539,7 @@
       <div class="message-item">
         <div class="msg-avatar bg-purple">N</div>
         <div class="msg-body">
-          <div class="msg-author">Nancoda Administor (#1)</div>
+          <div class="msg-author blue">Nancoda Administor (#1)</div>
           <div class="msg-bubble">huhuhu</div>
         </div>
       </div>
@@ -493,7 +547,7 @@
       <div class="message-item">
         <div class="msg-avatar bg-purple">N</div>
         <div class="msg-body">
-          <div class="msg-author">Nancoda Administor (#1)</div>
+          <div class="msg-author blue">Nancoda Administor (#1)</div>
           <div class="msg-bubble">oluur</div>
         </div>
       </div>
@@ -501,7 +555,7 @@
       <div class="message-item">
         <div class="msg-avatar bg-yellow">🤖</div>
         <div class="msg-body">
-          <div class="msg-author" style="color: #949ba4;">damacankuryesimehmet (#2)</div>
+          <div class="msg-author blue">damacankuryesimehmet (#2)</div>
           <div class="msg-bubble">bok gibi site</div>
         </div>
       </div>
@@ -509,7 +563,7 @@
       <div class="message-item">
         <div class="msg-avatar bg-yellow">🤖</div>
         <div class="msg-body">
-          <div class="msg-author" style="color: #949ba4;">am patlatan (#3)</div>
+          <div class="msg-author blue">am patlatan (#3)</div>
           <div class="msg-bubble">habiden</div>
         </div>
       </div>
@@ -517,7 +571,7 @@
       <div class="message-item">
         <div class="msg-avatar bg-purple">N</div>
         <div class="msg-body">
-          <div class="msg-author">Nancoda Administor (#1)</div>
+          <div class="msg-author blue">Nancoda Administor (#1)</div>
           <div class="msg-bubble">haha</div>
         </div>
       </div>
@@ -525,7 +579,7 @@
       <div class="message-item">
         <div class="msg-avatar bg-yellow">🤖</div>
         <div class="msg-body">
-          <div class="msg-author" style="color: #949ba4;">huhuhu (#5)</div>
+          <div class="msg-author blue">huhuhu (#5)</div>
           <div class="msg-bubble">HAHAHAHA</div>
         </div>
       </div>
@@ -533,7 +587,7 @@
       <div class="message-item">
         <div class="msg-avatar bg-purple">N</div>
         <div class="msg-body">
-          <div class="msg-author">Nancoda Administor (#1)</div>
+          <div class="msg-author blue">Nancoda Administor (#1)</div>
           <div class="msg-bubble">SEN KİMSİN LA</div>
         </div>
       </div>
@@ -541,14 +595,14 @@
       <div class="message-item">
         <div class="msg-avatar bg-yellow">🤖</div>
         <div class="msg-body">
-          <div class="msg-author" style="color: #949ba4;">huhuhu (#5)</div>
+          <div class="msg-author blue">huhuhu (#5)</div>
           <div class="msg-bubble">BEN OPTİMUS PIRAYIM</div>
         </div>
       </div>
 
     </div>
 
-    <!-- Alt Mesaj Yazma Alanı -->
+    <!-- Mesaj Giriş Alanı -->
     <div class="chat-input-wrapper">
       <div class="input-box-container">
         <button class="file-attach-btn">📎</button>
