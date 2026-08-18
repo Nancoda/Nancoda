@@ -575,4 +575,346 @@
         set(ref(db, `users/${currentUserId}/name`), currentUser);
       }
 
-      currentUserAvatar = selected 
+      currentUserAvatar = selectedAvatarUrl;
+      localStorage.setItem('nc_avatar', currentUserAvatar);
+      set(ref(db, `users/${currentUserId}/avatar`), currentUserAvatar);
+
+      document.getElementById('my-avatar-img').src = currentUserAvatar;
+      document.getElementById('my-username-display').innerText = currentUser;
+      document.getElementById('settings-modal').style.display = 'none';
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.reload();
+    }
+
+    // --- UYGULAMA BAŞLATMA VE VERİ YÜKLEME ---
+
+    function initApp() {
+      document.getElementById('my-username-display').innerText = currentUser;
+      document.getElementById('my-id-display').innerText = `ID: #${currentUserId}`;
+      document.getElementById('my-avatar-img').src = currentUserAvatar;
+
+      loadServers();
+      loadChannels();
+      loadMessages();
+    }
+
+    // --- SUNUCU MANTIĞI ---
+    function loadServers() {
+      onValue(ref(db, 'servers'), (snapshot) => {
+        const servers = snapshot.val() || {};
+        const container = document.getElementById('server-list-container');
+        container.innerHTML = '';
+
+        Object.keys(servers).forEach(serverName => {
+          const div = document.createElement('div');
+          div.className = `server-icon ${serverName === currentServer && !isDMMode ? 'active' : ''}`;
+          div.innerText = serverName.substring(0, 2).toUpperCase();
+          div.title = serverName;
+          div.onclick = () => switchServer(serverName);
+          container.appendChild(div);
+        });
+      });
+    }
+
+    function createCustomServer() {
+      const srvName = prompt("Oluşturmak istediğiniz sunucunun adını girin:");
+      if (!srvName) return;
+      
+      set(ref(db, `servers/${srvName}/textChannels/genel-sohbet`), true);
+      set(ref(db, `servers/${srvName}/voiceChannels/Genel Ses Odasi`), true);
+      
+      currentServer = srvName;
+      isDMMode = false;
+      switchServer(srvName);
+    }
+
+    function switchServer(serverName) {
+      currentServer = serverName;
+      isDMMode = false;
+      currentChannel = "genel-sohbet";
+      document.getElementById('current-server-title').innerText = serverName;
+      document.getElementById('voice-panel-box').style.display = 'flex';
+      
+      loadServers();
+      loadChannels();
+      loadMessages();
+    }
+
+    function copyInviteLink() {
+      const inviteUrl = `${window.location.origin}${window.location.pathname}?invite=${encodeURIComponent(currentServer)}`;
+      navigator.clipboard.writeText(inviteUrl).then(() => {
+        alert("Davet linki kopyalandı:\n" + inviteUrl);
+      });
+    }
+
+    function leaveCurrentServer() {
+      if(currentServer === "Ana Sunucu") {
+        alert("Ana sunucudan ayrılamazsınız.");
+        return;
+      }
+      switchServer("Ana Sunucu");
+    }
+
+    // --- KANAL MANTIĞI ---
+    function loadChannels() {
+      if (isDMMode) return;
+
+      onValue(ref(db, `servers/${currentServer}/textChannels`), (snapshot) => {
+        const channels = snapshot.val() || {};
+        const container = document.getElementById('text-channel-container');
+        container.innerHTML = '';
+
+        Object.keys(channels).forEach(channelName => {
+          const div = document.createElement('div');
+          div.className = `channel-item ${channelName === currentChannel ? 'active' : ''}`;
+          div.innerHTML = `<span># ${channelName}</span>`;
+          div.onclick = () => {
+            currentChannel = channelName;
+            document.getElementById('current-channel-title').innerText = `💬 ${channelName}`;
+            loadChannels();
+            loadMessages();
+          };
+          container.appendChild(div);
+        });
+      });
+
+      onValue(ref(db, `servers/${currentServer}/voiceChannels`), (snapshot) => {
+        const channels = snapshot.val() || {};
+        const container = document.getElementById('voice-channel-container');
+        container.innerHTML = '';
+
+        Object.keys(channels).forEach(channelName => {
+          const div = document.createElement('div');
+          div.className = 'channel-item';
+          div.innerHTML = `<span>🔊 ${channelName}</span>`;
+          div.onclick = () => joinVoice(channelName);
+          container.appendChild(div);
+        });
+      });
+    }
+
+    function createTextChannel() {
+      const chName = prompt("Yeni yazı kanalı adını girin:");
+      if (!chName) return;
+      set(ref(db, `servers/${currentServer}/textChannels/${chName.toLowerCase().replace(/\s+/g, '-')}`), true);
+    }
+
+    function createVoiceChannel() {
+      const chName = prompt("Yeni ses kanalı adını girin:");
+      if (!chName) return;
+      set(ref(db, `servers/${currentServer}/voiceChannels/${chName}`), true);
+    }
+
+    // --- MESAJLAŞMA MANTIĞI ---
+    function loadMessages() {
+      let path = isDMMode 
+        ? `dms/${getDMId(currentUserId, activeDMUserId)}` 
+        : `messages/${currentServer}/${currentChannel}`;
+
+      onValue(ref(db, path), (snapshot) => {
+        const chatBox = document.getElementById('chat-box');
+        chatBox.innerHTML = '';
+        const messages = snapshot.val();
+        
+        if (messages) {
+          Object.values(messages).forEach(msg => {
+            const div = document.createElement('div');
+            div.className = 'message';
+            const imgHtml = msg.img ? `<img src="${msg.img}" class="msg-img">` : '';
+            const textHtml = msg.text ? `<div>${msg.text}</div>` : '';
+            
+            div.innerHTML = `
+              <img src="${msg.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=Nancoda'}" class="msg-avatar">
+              <div class="msg-content">
+                <div class="user">${msg.author} <span style="color:#777; font-size:10px;">ID:${msg.authorId}</span></div>
+                ${textHtml}
+                ${imgHtml}
+              </div>
+            `;
+            chatBox.appendChild(div);
+          });
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
+      });
+    }
+
+    function sendMessage(imgUrl = null) {
+      const input = document.getElementById('msgInput');
+      const text = input.value.trim();
+      
+      if (!text && !imgUrl) return;
+
+      const messageData = {
+        author: currentUser,
+        authorId: currentUserId,
+        avatar: currentUserAvatar,
+        text: text,
+        img: imgUrl,
+        timestamp: Date.now()
+      };
+
+      let path = isDMMode 
+        ? `dms/${getDMId(currentUserId, activeDMUserId)}` 
+        : `messages/${currentServer}/${currentChannel}`;
+
+      push(ref(db, path), messageData);
+      input.value = '';
+    }
+
+    function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        sendMessage(e.target.result); // Base64 olarak gönder
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // --- DM & ARKADAŞLIK MANTIĞI ---
+    function openDMView() {
+      isDMMode = true;
+      document.getElementById('current-server-title').innerText = "Direkt Mesajlar";
+      document.getElementById('voice-panel-box').style.display = 'none';
+      document.getElementById('current-channel-title').innerText = "💬 Özel Mesajlar";
+      
+      document.getElementById('text-channel-container').innerHTML = '';
+      document.getElementById('voice-channel-container').innerHTML = '';
+      document.getElementById('chat-box').innerHTML = '<div style="text-align:center; color:#949ba4; margin-top:20px;">Sohbet etmek için listeden bir arkadaş seçin.</div>';
+      
+      loadServers();
+      loadFriendList();
+    }
+
+    function loadFriendList() {
+      onValue(ref(db, `users/${currentUserId}/friends`), (snapshot) => {
+        if (!isDMMode) return;
+        
+        const friends = snapshot.val() || {};
+        const container = document.getElementById('text-channel-container');
+        container.innerHTML = '';
+
+        Object.keys(friends).forEach(friendId => {
+          const div = document.createElement('div');
+          div.className = `channel-item ${activeDMUserId === friendId ? 'active' : ''}`;
+          div.innerHTML = `<span>👤 Kullanıcı #${friendId}</span>`;
+          div.onclick = () => {
+            activeDMUserId = friendId;
+            document.getElementById('current-channel-title').innerText = `💬 DM - #${friendId}`;
+            loadFriendList();
+            loadMessages();
+          };
+          container.appendChild(div);
+        });
+      });
+    }
+
+    function sendFriendRequest() {
+      const targetId = prompt("Eklemek istediğiniz kullanıcının ID'sini girin (Sadece rakam):");
+      if (!targetId || targetId === currentUserId) return;
+
+      set(ref(db, `friendRequests/${targetId}/${currentUserId}`), {
+        from: currentUserId,
+        name: currentUser,
+        timestamp: Date.now()
+      });
+      alert("Arkadaşlık isteği gönderildi!");
+    }
+
+    function loadFriendRequests() {
+      onValue(ref(db, `friendRequests/${currentUserId}`), (snapshot) => {
+        const requests = snapshot.val() || {};
+        const list = document.getElementById('requests-list');
+        list.innerHTML = '';
+
+        Object.keys(requests).forEach(reqId => {
+          const req = requests[reqId];
+          const div = document.createElement('div');
+          div.className = 'req-item';
+          div.innerHTML = `
+            <span style="font-size:14px;">${req.name} (ID: ${req.from})</span>
+            <div>
+              <button class="btn-sm" style="background:#23a55a;" onclick="acceptFriend('${req.from}')">Kabul</button>
+              <button class="btn-sm" style="background:#da373c;" onclick="rejectFriend('${req.from}')">Red</button>
+            </div>
+          `;
+          list.appendChild(div);
+        });
+        
+        if (Object.keys(requests).length === 0) {
+          list.innerHTML = '<span style="font-size:13px; color:#949ba4;">Bekleyen istek yok.</span>';
+        }
+      });
+    }
+
+    window.acceptFriend = function(friendId) {
+      set(ref(db, `users/${currentUserId}/friends/${friendId}`), true);
+      set(ref(db, `users/${friendId}/friends/${currentUserId}`), true);
+      remove(ref(db, `friendRequests/${currentUserId}/${friendId}`));
+    };
+
+    window.rejectFriend = function(friendId) {
+      remove(ref(db, `friendRequests/${currentUserId}/${friendId}`));
+    };
+
+    function getDMId(id1, id2) {
+      return parseInt(id1) < parseInt(id2) ? `${id1}_${id2}` : `${id2}_${id1}`;
+    }
+
+    // --- SESLİ SOHBET (MOCK / BASİT SİNYALLEŞME) ---
+    async function joinVoice(channelName) {
+      if (activeVoiceChannel === channelName) return;
+      if (activeVoiceChannel) leaveVoice();
+
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        activeVoiceChannel = channelName;
+
+        document.getElementById('voice-channel-name').innerText = channelName;
+        document.getElementById('voice-status-text').innerText = "Bağlandı";
+        document.getElementById('join-voice-btn').style.display = 'none';
+        document.getElementById('leave-voice-btn').style.display = 'inline-block';
+        document.getElementById('toggle-mic-btn').style.display = 'inline-block';
+
+        // Firebase üzerinde odadaki kişileri güncelle (Gerçek WebRTC Peer-to-Peer için sinyalleşme buraya eklenir)
+        set(ref(db, `voiceRooms/${currentServer}/${channelName}/${currentUserId}`), {
+          name: currentUser,
+          active: true
+        });
+
+      } catch (err) {
+        alert("Mikrofon erişimi engellendi!");
+      }
+    }
+
+    function toggleMic() {
+      if (!localStream) return;
+      isMuted = !isMuted;
+      localStream.getAudioTracks()[0].enabled = !isMuted;
+      const btn = document.getElementById('toggle-mic-btn');
+      btn.innerText = isMuted ? "🎤 Unmute" : "🎤 Mute";
+      btn.style.backgroundColor = isMuted ? "#da373c" : "#4e5058";
+    }
+
+    function leaveVoice() {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+      }
+      if (activeVoiceChannel) {
+        remove(ref(db, `voiceRooms/${currentServer}/${activeVoiceChannel}/${currentUserId}`));
+      }
+      activeVoiceChannel = null;
+      document.getElementById('voice-channel-name').innerText = "Bağlı Değil";
+      document.getElementById('voice-status-text').innerText = "Devre Dışı";
+      document.getElementById('join-voice-btn').style.display = 'inline-block';
+      document.getElementById('leave-voice-btn').style.display = 'none';
+      document.getElementById('toggle-mic-btn').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
