@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <title>Nancoda</title>
+  <!-- Firebase SDK (v9 Compatibility Mode) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
     body { display: flex; height: 100vh; background-color: #313338; color: #dbdee1; overflow: hidden; }
@@ -54,6 +57,7 @@
     #servers-bar { width: 72px; background-color: #1e1f22; display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 8px; }
     .server-icon { width: 48px; height: 48px; background-color: #313338; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; transition: 0.2s; color: #fff; }
     .server-icon:hover { border-radius: 16px; background-color: #5865f2; }
+    .server-icon.active { border-radius: 16px; background-color: #5865f2; }
     .add-server { background-color: #2b2d31; color: #23a55a; font-size: 24px; }
     .add-server:hover { background-color: #23a55a; color: #fff; }
 
@@ -62,6 +66,7 @@
     .channels-list { flex: 1; padding: 10px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
     .channel-item { padding: 6px 8px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: #949ba4; }
     .channel-item:hover { background-color: #35373c; color: #dbdee1; }
+    .channel-item.active { background-color: #404249; color: #fff; }
 
     /* Kullanıcı Bilgi Paneli (Sol Alt) */
     .user-profile-bar { height: 52px; background-color: #232428; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #1f2023; }
@@ -107,7 +112,6 @@
     <div class="google-popup-box">
       <svg class="google-logo" viewBox="0 0 74 24"><path fill="#4285F4" d="M9.24 8.19v2.46h5.88c-.18 1.38-.64 2.39-1.34 3.1-.86.86-2.2 1.8-4.54 1.8-3.63 0-6.54-2.94-6.54-6.57s2.91-6.57 6.54-6.57c1.96 0 3.39.77 4.44 1.76l1.73-1.73C13.88 1.01 11.85 0 9.24 0 4.22 0 0 4.22 0 9.24s4.22 9.24 9.24 9.24c2.71 0 4.75-.89 6.35-2.56 1.64-1.64 2.15-3.95 2.15-5.83 0-.58-.05-1.15-.13-1.63H9.24z"/></svg>
       
-      <!-- E-POSTA AŞAMASI -->
       <div id="google-step-email">
         <h3>Oturum Açın</h3>
         <p>Nancoda uygulamasına devam et</p>
@@ -117,7 +121,6 @@
         </div>
       </div>
 
-      <!-- ŞİFRE AŞAMASI -->
       <div id="google-step-password" style="display:none;">
         <h3>Hoş Geldiniz</h3>
         <div class="account-badge" id="display-user-email">
@@ -129,7 +132,6 @@
         </div>
       </div>
 
-      <!-- CAPTCHA AŞAMASI -->
       <div id="google-step-captcha" style="display:none;">
         <h3>Güvenlik Doğrulaması</h3>
         <p>Lütfen robot olmadığınızı doğrulayın.</p>
@@ -206,7 +208,6 @@
         </div>
       </div>
 
-      <!-- KULLANICI PROFİL VE İD BİLGİ ALANI -->
       <div class="user-profile-bar">
         <div class="user-profile-info">
           <span class="user-profile-name" id="my-username-display">Yükleniyor...</span>
@@ -218,7 +219,7 @@
 
     <div id="main-content">
       <div class="chat-header">
-        <span id="current-channel-title">💬 #genel-sohbet</span>
+        <span id="current-channel-title">💬 genel-sohbet</span>
         <div>
           <button style="padding:4px 10px; font-size:12px; background-color:#23a55a;" onclick="sendFriendRequest()">➕ Arkadaş Ekle (ID)</button>
         </div>
@@ -247,31 +248,36 @@
   </div>
 
   <script>
+    // --- FIREBASE AYARLARI ---
+    const firebaseConfig = {
+      databaseURL: "https://nancoda-chat-default-rtdb.firebaseio.com"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
     let currentUser = localStorage.getItem('nc_username') || null;
     let currentUserId = localStorage.getItem('nc_userid') || null;
     
-    // Kullanıcılar veritabanı simülasyonu
-    let allUsers = JSON.parse(localStorage.getItem('nc_all_users')) || [];
-    let friendRequests = JSON.parse(localStorage.getItem('nc_friend_requests')) || [];
-    let friendsList = JSON.parse(localStorage.getItem('nc_friends_list')) || [];
-
-    let servers = JSON.parse(localStorage.getItem('dc_servers')) || ["Ana Sunucu"];
-    let textChannels = JSON.parse(localStorage.getItem('dc_textChannels')) || ["genel-sohbet", "duyurular"];
-    let voiceChannels = JSON.parse(localStorage.getItem('dc_voiceChannels')) || ["Genel Ses Odası", "Oyun Odası"];
-    let messages = JSON.parse(localStorage.getItem('dc_messages')) || [];
+    let currentServer = "Ana Sunucu";
+    let currentChannel = "genel-sohbet";
 
     let isCaptchaVerified = false;
 
     window.onload = function() {
-      // URL'de davet linki var mı kontrol et
+      // Varsayılan Sunucu Kurulumu
+      db.ref('servers/Ana Sunucu/textChannels').once('value', snapshot => {
+        if (!snapshot.exists()) {
+          db.ref('servers/Ana Sunucu/textChannels/genel-sohbet').set(true);
+          db.ref('servers/Ana Sunucu/textChannels/duyurular').set(true);
+          db.ref('servers/Ana Sunucu/voiceChannels/Genel Ses Odasi').set(true);
+        }
+      });
+
       const urlParams = new URLSearchParams(window.location.search);
       const inviteServer = urlParams.get('invite');
       if (inviteServer) {
-        if (!servers.includes(inviteServer)) {
-          servers.push(inviteServer);
-          saveData();
-          alert(`"${inviteServer}" sunucusuna davet linki ile katıldın!`);
-        }
+        currentServer = inviteServer;
+        alert(`"${inviteServer}" sunucusuna davet linki ile katıldın!`);
       }
 
       if (!currentUser || !currentUserId) {
@@ -295,7 +301,7 @@
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
       if (!email || !emailRegex.test(email)) {
-        alert("Lütfen geçerli bir e-posta adresi yazın! (Örn: isim@gmail.com)");
+        alert("Lütfen geçerli bir e-posta adresi yazın!");
         return;
       }
 
@@ -303,6 +309,8 @@
       document.getElementById('google-step-email').style.display = 'none';
       document.getElementById('google-step-password').style.display = 'block';
     }
+
+    function goToPasswordStep() {} 
 
     function goToCaptchaStep() {
       const password = document.getElementById('google-password-input').value;
@@ -352,41 +360,125 @@
         return;
       }
 
-      if (allUsers.some(u => u.name.toLowerCase() === username.toLowerCase())) {
-        alert("Bu kullanıcı adı önceden alınmış! Lütfen başka bir isim deneyin.");
-        return;
-      }
+      // FIREBASE CANLI ID ALMA (Çakışmasız Sıralı ID)
+      db.ref('users').once('value', snapshot => {
+        const users = snapshot.val() || {};
+        const userList = Object.values(users);
 
-      // Otomatik ID Belirleme (1'den başlar)
-      const newId = allUsers.length + 1;
-      
-      currentUser = username;
-      currentUserId = newId;
+        if (userList.some(u => u.name && u.name.toLowerCase() === username.toLowerCase())) {
+          alert("Bu kullanıcı adı alınmış! Lütfen başka bir isim girin.");
+          return;
+        }
 
-      allUsers.push({ id: currentUserId, name: currentUser });
+        const newId = userList.length + 1;
+        
+        currentUser = username;
+        currentUserId = newId;
 
-      localStorage.setItem('nc_username', currentUser);
-      localStorage.setItem('nc_userid', currentUserId);
-      localStorage.setItem('nc_all_users', JSON.stringify(allUsers));
+        db.ref('users/' + currentUserId).set({
+          id: currentUserId,
+          name: currentUser
+        });
 
-      const welcomeText = `Merhaba ${currentUser} (ID: #${currentUserId}), Nancoda'ya Hoşgeldin.`;
-      messages.push({ user: "Sistem", text: welcomeText });
-      saveData();
+        localStorage.setItem('nc_username', currentUser);
+        localStorage.setItem('nc_userid', currentUserId);
 
-      document.getElementById('username-modal').style.display = 'none';
-      initApp();
+        document.getElementById('username-modal').style.display = 'none';
+        initApp();
+      });
     }
 
     function initApp() {
       document.getElementById('my-username-display').innerText = currentUser;
       document.getElementById('my-id-display').innerText = `ID: #${currentUserId}`;
 
-      renderServers();
-      renderChannels();
-      renderMessages();
+      listenServers();
+      listenChannels();
+      listenMessages();
+      listenFriendRequests();
     }
 
-    /* --- ARKADAŞLIK VE ID SİSTEMİ --- */
+    /* --- CANLI VERİTABANI DİNLEYİCİLERİ --- */
+    function listenServers() {
+      db.ref('servers').on('value', snapshot => {
+        const servers = snapshot.val() || {};
+        const container = document.getElementById('server-list-container');
+        container.innerHTML = '';
+
+        Object.keys(servers).forEach(srvName => {
+          const div = document.createElement('div');
+          div.className = `server-icon ${srvName === currentServer ? 'active' : ''}`;
+          div.innerText = srvName.substring(0, 2).toUpperCase();
+          div.onclick = () => switchServer(srvName);
+          container.appendChild(div);
+        });
+      });
+    }
+
+    function listenChannels() {
+      db.ref(`servers/${currentServer}`).on('value', snapshot => {
+        const data = snapshot.val() || {};
+        const textChannels = data.textChannels || {};
+        const voiceChannels = data.voiceChannels || {};
+
+        const textContainer = document.getElementById('text-channel-container');
+        textContainer.innerHTML = '';
+        Object.keys(textChannels).forEach(ch => {
+          const div = document.createElement('div');
+          div.className = `channel-item ${ch === currentChannel ? 'active' : ''}`;
+          div.innerHTML = `<span>💬 #${ch}</span>`;
+          div.onclick = () => selectChannel(ch);
+          textContainer.appendChild(div);
+        });
+
+        const voiceContainer = document.getElementById('voice-channel-container');
+        voiceContainer.innerHTML = '';
+        Object.keys(voiceChannels).forEach(ch => {
+          const div = document.createElement('div');
+          div.className = 'channel-item';
+          div.innerHTML = `<span>🔊 ${ch}</span>`;
+          voiceContainer.appendChild(div);
+        });
+      });
+    }
+
+    function listenMessages() {
+      const sanitizedServer = currentServer.replace(/[.#$/[\]]/g, "_");
+      const sanitizedChannel = currentChannel.replace(/[.#$/[\]]/g, "_");
+
+      db.ref(`messages/${sanitizedServer}/${sanitizedChannel}`).on('value', snapshot => {
+        const msgBox = document.getElementById('chat-box');
+        msgBox.innerHTML = '';
+        const msgs = snapshot.val() || {};
+
+        Object.values(msgs).forEach(m => {
+          const msgDiv = document.createElement('div');
+          msgDiv.className = 'message';
+          msgDiv.innerHTML = `<div class="user">${m.user}</div>${m.text}`;
+          msgBox.appendChild(msgDiv);
+        });
+        msgBox.scrollTop = msgBox.scrollHeight;
+      });
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('msgInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const sanitizedServer = currentServer.replace(/[.#$/[\]]/g, "_");
+      const sanitizedChannel = currentChannel.replace(/[.#$/[\]]/g, "_");
+
+      db.ref(`messages/${sanitizedServer}/${sanitizedChannel}`).push({
+        user: `${currentUser} (#${currentUserId})`,
+        text: text,
+        timestamp: Date.now()
+      });
+
+      input.value = '';
+    }
+
+    /* --- ARKADAŞLIK SİSTEMİ (CANLI) --- */
     function sendFriendRequest() {
       const targetId = prompt("Eklemek istediğin arkadaşının ID numarasını gir:");
       if (!targetId) return;
@@ -396,184 +488,112 @@
         return;
       }
 
-      const targetUser = allUsers.find(u => u.id == targetId);
-      if (!targetUser) {
-        alert("Bu ID'ye sahip bir kullanıcı bulunamadı!");
-        return;
-      }
+      db.ref('users/' + targetId).once('value', snapshot => {
+        if (!snapshot.exists()) {
+          alert("Bu ID'ye sahip bir kullanıcı bulunamadı!");
+          return;
+        }
 
-      friendRequests.push({
-        fromId: currentUserId,
-        fromName: currentUser,
-        toId: targetUser.id
+        const targetUser = snapshot.val();
+        db.ref(`friendRequests/${targetId}/${currentUserId}`).set({
+          fromId: currentUserId,
+          fromName: currentUser
+        });
+
+        alert(`${targetUser.name} (ID: #${targetUser.id}) kullanıcısına arkadaşlık isteği gönderildi!`);
       });
-
-      localStorage.setItem('nc_friend_requests', JSON.stringify(friendRequests));
-      alert(`${targetUser.name} (ID: #${targetUser.id}) adlı kullanıcıya arkadaşlık isteği gönderildi!`);
     }
 
-    function openFriendsModal() {
-      document.getElementById('friends-modal').style.display = 'flex';
-      renderRequests();
-    }
+    function listenFriendRequests() {
+      db.ref(`friendRequests/${currentUserId}`).on('value', snapshot => {
+        const requests = snapshot.val() || {};
+        const container = document.getElementById('requests-list');
+        container.innerHTML = '';
 
-    function closeFriendsModal() {
-      document.getElementById('friends-modal').style.display = 'none';
-    }
+        const keys = Object.keys(requests);
+        if (keys.length === 0) {
+          container.innerHTML = '<p style="color:#aaa; font-size:13px;">Gelen istek bulunmuyor.</p>';
+          return;
+        }
 
-    function renderRequests() {
-      const container = document.getElementById('requests-list');
-      container.innerHTML = '';
-
-      const myRequests = friendRequests.filter(r => r.toId == currentUserId);
-
-      if (myRequests.length === 0) {
-        container.innerHTML = '<p style="color:#aaa; font-size:13px;">Gelen istek bulunmuyor.</p>';
-        return;
-      }
-
-      myRequests.forEach((req, index) => {
-        const div = document.createElement('div');
-        div.className = 'req-item';
-        div.innerHTML = `
-          <span style="font-size:13px; color:#fff;"><b>${req.fromName}</b> (ID: #${req.fromId})</span>
-          <div>
-            <button class="btn-sm" style="background-color:#23a55a;" onclick="acceptRequest(${req.fromId})">Kabul Et</button>
-            <button class="btn-sm" style="background-color:#da373c;" onclick="rejectRequest(${req.fromId})">Reddet</button>
-          </div>
-        `;
-        container.appendChild(div);
+        keys.forEach(key => {
+          const req = requests[key];
+          const div = document.createElement('div');
+          div.className = 'req-item';
+          div.innerHTML = `
+            <span style="font-size:13px; color:#fff;"><b>${req.fromName}</b> (ID: #${req.fromId})</span>
+            <div>
+              <button class="btn-sm" style="background-color:#23a55a;" onclick="acceptRequest(${req.fromId})">Kabul Et</button>
+              <button class="btn-sm" style="background-color:#da373c;" onclick="rejectRequest(${req.fromId})">Reddet</button>
+            </div>
+          `;
+          container.appendChild(div);
+        });
       });
     }
 
     function acceptRequest(fromId) {
-      friendsList.push(fromId);
-      friendRequests = friendRequests.filter(r => !(r.toId == currentUserId && r.fromId == fromId));
-
-      localStorage.setItem('nc_friends_list', JSON.stringify(friendsList));
-      localStorage.setItem('nc_friend_requests', JSON.stringify(friendRequests));
-
+      db.ref(`friends/${currentUserId}/${fromId}`).set(true);
+      db.ref(`friends/${fromId}/${currentUserId}`).set(true);
+      db.ref(`friendRequests/${currentUserId}/${fromId}`).remove();
       alert("Arkadaşlık isteği kabul edildi!");
-      renderRequests();
     }
 
     function rejectRequest(fromId) {
-      friendRequests = friendRequests.filter(r => !(r.toId == currentUserId && r.fromId == fromId));
-      localStorage.setItem('nc_friend_requests', JSON.stringify(friendRequests));
-      renderRequests();
+      db.ref(`friendRequests/${currentUserId}/${fromId}`).remove();
     }
 
-    /* --- SUNUCU VE DAVET LİNKİ SİSTEMİ --- */
+    function openFriendsModal() { document.getElementById('friends-modal').style.display = 'flex'; }
+    function closeFriendsModal() { document.getElementById('friends-modal').style.display = 'none'; }
+
+    /* --- SUNUCU VE KANAL OLUŞTURMA --- */
+    function createCustomServer() {
+      const name = prompt("Yeni Sunucu Adı:");
+      if (name) {
+        db.ref(`servers/${name}/textChannels/genel-sohbet`).set(true);
+        switchServer(name);
+      }
+    }
+
+    function createTextChannel() {
+      const name = prompt("Yeni Yazı Kanalı Adı:");
+      if (name) {
+        db.ref(`servers/${currentServer}/textChannels/${name}`).set(true);
+        selectChannel(name);
+      }
+    }
+
+    function createVoiceChannel() {
+      const name = prompt("Yeni Ses Kanalı Adı:");
+      if (name) {
+        db.ref(`servers/${currentServer}/voiceChannels/${name}`).set(true);
+      }
+    }
+
+    function switchServer(name) {
+      currentServer = name;
+      currentChannel = "genel-sohbet";
+      document.getElementById('current-server-title').innerText = name;
+      document.getElementById('current-channel-title').innerText = "💬 genel-sohbet";
+      listenChannels();
+      listenMessages();
+    }
+
+    function selectChannel(name) {
+      currentChannel = name;
+      document.getElementById('current-channel-title').innerText = `💬 ${name}`;
+      listenChannels();
+      listenMessages();
+    }
+
     function copyInviteLink() {
-      const currentServer = document.getElementById('current-server-title').innerText;
       const inviteUrl = `${window.location.origin}${window.location.pathname}?invite=${encodeURIComponent(currentServer)}`;
-      
       navigator.clipboard.writeText(inviteUrl).then(() => {
         alert(`"${currentServer}" sunucusunun davet linki kopyalandı!\n\nLink: ${inviteUrl}`);
       }).catch(() => {
         alert(`Davet Linkin: ${inviteUrl}`);
       });
     }
-
-    function saveData() {
-      localStorage.setItem('dc_servers', JSON.stringify(servers));
-      localStorage.setItem('dc_textChannels', JSON.stringify(textChannels));
-      localStorage.setItem('dc_voiceChannels', JSON.stringify(voiceChannels));
-      localStorage.setItem('dc_messages', JSON.stringify(messages));
-    }
-
-    function renderServers() {
-      const container = document.getElementById('server-list-container');
-      container.innerHTML = '';
-      servers.forEach((srv) => {
-        const div = document.createElement('div');
-        div.className = 'server-icon';
-        div.innerText = srv.substring(0, 2).toUpperCase();
-        div.onclick = () => switchServer(srv);
-        container.appendChild(div);
-      });
-    }
-
-    function renderChannels() {
-      const textContainer = document.getElementById('text-channel-container');
-      textContainer.innerHTML = '';
-      textChannels.forEach((ch, index) => {
-        const div = document.createElement('div');
-        div.className = 'channel-item';
-        div.innerHTML = `
-          <span>💬 #${ch}</span>
-          <span style="font-size:10px; cursor:pointer;" onclick="renameTextChannel(${index}, event)">✏️</span>
-        `;
-        div.onclick = () => selectChannel('#' + ch);
-        textContainer.appendChild(div);
-      });
-
-      const voiceContainer = document.getElementById('voice-channel-container');
-      voiceContainer.innerHTML = '';
-      voiceChannels.forEach((ch, index) => {
-        const div = document.createElement('div');
-        div.className = 'channel-item';
-        div.innerHTML = `
-          <span>🔊 ${ch}</span>
-          <span style="font-size:10px; cursor:pointer;" onclick="renameVoiceChannel(${index}, event)">✏️</span>
-        `;
-        div.onclick = () => selectChannel('🔊 ' + ch);
-        voiceContainer.appendChild(div);
-      });
-    }
-
-    function renderMessages() {
-      const msgBox = document.getElementById('chat-box');
-      msgBox.innerHTML = '';
-      messages.forEach((m) => {
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'message';
-        msgDiv.innerHTML = `<div class="user">${m.user}</div>${m.text}`;
-        msgBox.appendChild(msgDiv);
-      });
-      msgBox.scrollTop = msgBox.scrollHeight;
-    }
-
-    function sendMessage() {
-      const input = document.getElementById('msgInput');
-      const text = input.value.trim();
-      if (!text) return;
-
-      messages.push({ user: `${currentUser} (#${currentUserId})`, text: text });
-      saveData();
-      renderMessages();
-      input.value = '';
-    }
-
-    function createCustomServer() {
-      const name = prompt("Yeni Sunucu Adı:");
-      if (name) { servers.push(name); saveData(); renderServers(); }
-    }
-
-    function createTextChannel() {
-      const name = prompt("Yeni Yazı Kanalı Adı:");
-      if (name) { textChannels.push(name); saveData(); renderChannels(); }
-    }
-
-    function createVoiceChannel() {
-      const name = prompt("Yeni Ses Kanalı Adı:");
-      if (name) { voiceChannels.push(name); saveData(); renderChannels(); }
-    }
-
-    function renameTextChannel(index, e) {
-      e.stopPropagation();
-      const name = prompt("Yeni Kanal Adı:", textChannels[index]);
-      if (name) { textChannels[index] = name; saveData(); renderChannels(); }
-    }
-
-    function renameVoiceChannel(index, e) {
-      e.stopPropagation();
-      const name = prompt("Yeni Kanal Adı:", voiceChannels[index]);
-      if (name) { voiceChannels[index] = name; saveData(); renderChannels(); }
-    }
-
-    function switchServer(name) { document.getElementById('current-server-title').innerText = name; }
-    function selectChannel(name) { document.getElementById('current-channel-title').innerText = name; }
 
     async function joinVoice() {
       try { await navigator.mediaDevices.getUserMedia({ audio: true }); alert("Sese katıldın!"); } 
