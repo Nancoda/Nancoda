@@ -197,8 +197,8 @@
 </head>
 <body>
 
-  <!-- Hidden Audio Element for WebRTC Stream -->
-  <audio id="remoteAudio" autoplay></audio>
+  <!-- Dynamic Audio Elements Container -->
+  <div id="audio-container" style="display:none;"></div>
 
   <!-- Sol Menü -->
   <div id="sidebar">
@@ -250,9 +250,9 @@
   <!-- Firebase Integration -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, push, onValue, set, get, child, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, push, onValue, set, get, child, onChildAdded, onChildRemoved, remove, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // FIREBASE YAPILANDIRMASI (Kendi Firebase Bilgilerin ile Değiştir)
+    // FIREBASE YAPILANDIRMASI
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_AUTH_DOMAIN",
@@ -270,12 +270,13 @@
     const currentServer = "nurol_yapim";
     let currentTextChannel = "genel";
     let activeVoiceChannel = null;
-    let currentUserId = "user_" + Math.floor(Math.random() * 10000);
+    let currentUserId = "user_" + Math.floor(Math.random() * 100000);
     
-    // WebRTC Değişkenleri
+    // WebRTC Değişkenleri & Peer Listesi
     let localStream = null;
-    let peerConnection = null;
+    let peerConnections = {}; // targetUserId -> RTCPeerConnection
     let isMuted = false;
+    let voiceListeners = [];
 
     const rtcConfig = {
       iceServers: [
@@ -328,7 +329,7 @@
       });
     }
 
-    // --- WEBRTC SESLİ SOHBET MANTIĞI ---
+    // --- GEÇERLİ MULTI-PEER WEBRTC MANTIĞI ---
     window.joinVoice = async function(channelName) {
       if (activeVoiceChannel === channelName) return;
       if (activeVoiceChannel) leaveVoice();
@@ -343,78 +344,130 @@
         document.getElementById('leave-voice-btn').style.display = 'inline-block';
         document.getElementById('toggle-mic-btn').style.display = 'inline-block';
 
-        initWebRTC(channelName);
+        initMultiUserVoice(channelName);
       } catch (err) {
         alert("Mikrofon izni verilemedi veya tarayıcı tarafından engellendi!");
       }
     };
 
-    function initWebRTC(channelName) {
-      const signalRef = ref(db, `voiceSignals/${currentServer}/${channelName}`);
+    function initMultiUserVoice(channelName) {
+      const roomRef = ref(db, `voiceRooms/${currentServer}/${channelName}`);
+      const userRef = ref(db, `voiceRooms/${currentServer}/${channelName}/users/${currentUserId}`);
 
-      peerConnection = new RTCPeerConnection(rtcConfig);
+      // Kullanıcıyı odaya ekle
+      set(userRef, { joinedAt: Date.now() });
 
-      // Yerel mikrofon sesini peer bağlantısına ekle
-      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+      // Odadan çıkan kullanıcı olursa temizle
+      const usersRef = child(roomRef, 'users');
+      const userRemovedListener = onChildRemoved(usersRef, (snapshot) => {
+        const remoteUserId = snapshot.key;
+        removePeer(remoteUserId);
+      });
+      voiceListeners.push({ ref: usersRef, type: 'child_removed', callback: userRemovedListener });
 
-      // Karşı taraftan gelen ses akışını yakala ve çal
-      peerConnection.ontrack = (event) => {
-        const remoteAudio = document.getElementById('remoteAudio');
-        remoteAudio.srcObject = event.streams[0];
-        remoteAudio.play().catch(() => {});
+      // Odaya yeni giren bir kullanıcı varsa onun için teklif gönder
+      const userAddedListener = onChildAdded(usersRef, (snapshot) => {
+        const remoteUserId = snapshot.key;
+        if (remoteUserId !== currentUserId && !peerConnections[remoteUserId]) {
+          createPeerConnection(remoteUserId, channelName, true);
+        }
+      });
+      voiceListeners.push({ ref: usersRef, type: 'child_added', callback: userAddedListener });
+
+      // Sinyalleşme Dinleyicileri (Sana gelen Teklif, Yanıt ve ICE Adayları)
+      listenSignals(channelName);
+    }
+
+    function createPeerConnection(remoteUserId, channelName, isInitiator) {
+      const pc = new RTCPeerConnection(rtcConfig);
+      peerConnections[remoteUserId] = pc;
+
+      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+      pc.ontrack = (event) => {
+        let audioEl = document.getElementById(`audio-${remoteUserId}`);
+        if (!audioEl) {
+          audioEl = document.createElement('audio');
+          audioEl.id = `audio-${remoteUserId}`;
+          audioEl.autoplay = true;
+          document.getElementById('audio-container').appendChild(audioEl);
+        }
+        audioEl.srcObject = event.streams[0];
       };
 
-      // ICE Adaylarını (Bağlantı Adreslerini) Firebase'e kaydet
-      peerConnection.onicecandidate = (event) => {
+      pc.onicecandidate = (event) => {
         if (event.candidate) {
-          push(ref(db, `voiceSignals/${currentServer}/${channelName}/candidates/${currentUserId}`), event.candidate.toJSON());
+          push(ref(db, `voiceSignals/${currentServer}/${channelName}/${remoteUserId}/candidates/${currentUserId}`), event.candidate.toJSON());
         }
       };
 
-      // Odaya ilk giren miyiz yoksa var olan odaya mı katılıyoruz kontrolü
-      get(child(signalRef, 'offers')).then(snapshot => {
-        const offers = snapshot.val() || {};
-        const existingUserIds = Object.keys(offers);
+      if (isInitiator) {
+        pc.createOffer().then(offer => {
+          return pc.setLocalDescription(offer);
+        }).then(() => {
+          set(ref(db, `voiceSignals/${currentServer}/${channelName}/${remoteUserId}/offers/${currentUserId}`), pc.localDescription.toJSON());
+        });
+      }
 
-        if (existingUserIds.length === 0) {
-          // Oda boş, Teklif (Offer) oluştur
-          peerConnection.createOffer().then(offer => {
-            peerConnection.setLocalDescription(offer);
-            set(ref(db, `voiceSignals/${currentServer}/${channelName}/offers/${currentUserId}`), offer);
-          });
-        } else {
-          // Odada biri var, onun teklifini alıp Yanıt (Answer) oluştur
-          const targetUserId = existingUserIds[0];
-          const offer = offers[targetUserId];
+      return pc;
+    }
 
-          peerConnection.setRemoteDescription(new RTCSessionDescription(offer)).then(() => {
-            return peerConnection.createAnswer();
-          }).then(answer => {
-            peerConnection.setLocalDescription(answer);
-            set(ref(db, `voiceSignals/${currentServer}/${channelName}/answers/${currentUserId}`), answer);
-          });
+    function listenSignals(channelName) {
+      const mySignalsRef = ref(db, `voiceSignals/${currentServer}/${channelName}/${currentUserId}`);
+
+      // Gelen teklifleri dinle
+      const offersRef = child(mySignalsRef, 'offers');
+      onChildAdded(offersRef, (snapshot) => {
+        const fromUserId = snapshot.key;
+        const offer = snapshot.val();
+        if (!offer) return;
+
+        let pc = peerConnections[fromUserId] || createPeerConnection(fromUserId, channelName, false);
+        pc.setRemoteDescription(new RTCSessionDescription(offer)).then(() => {
+          return pc.createAnswer();
+        }).then(answer => {
+          return pc.setLocalDescription(answer);
+        }).then(() => {
+          set(ref(db, `voiceSignals/${currentServer}/${channelName}/${fromUserId}/answers/${currentUserId}`), pc.localDescription.toJSON());
+        });
+      });
+
+      // Gelen yanıtları dinle
+      const answersRef = child(mySignalsRef, 'answers');
+      onChildAdded(answersRef, (snapshot) => {
+        const fromUserId = snapshot.key;
+        const answer = snapshot.val();
+        if (!answer) return;
+
+        const pc = peerConnections[fromUserId];
+        if (pc && pc.signalingState !== "stable") {
+          pc.setRemoteDescription(new RTCSessionDescription(answer));
         }
       });
 
-      // Gelen Yanıtları (Answer) Dinle
-      onValue(child(signalRef, 'answers'), snapshot => {
-        const answers = snapshot.val() || {};
-        Object.keys(answers).forEach(key => {
-          if (key !== String(currentUserId) && peerConnection.signalingState === "have-local-offer") {
-            peerConnection.setRemoteDescription(new RTCSessionDescription(answers[key]));
-          }
-        });
-      });
+      // Gelen ICE adaylarını dinle
+      const candidatesRef = child(mySignalsRef, 'candidates');
+      onChildAdded(candidatesRef, (snapshot) => {
+        const fromUserId = snapshot.key;
+        const candidates = snapshot.val();
+        if (!candidates) return;
 
-      // Karşı Tarafın ICE Adaylarını Dinle
-      onChildAdded(child(signalRef, 'candidates'), snapshot => {
-        const candGroup = snapshot.val() || {};
-        Object.values(candGroup).forEach(cand => {
-          if (cand && peerConnection) {
-            peerConnection.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+        const pc = peerConnections[fromUserId];
+        Object.values(candidates).forEach(cand => {
+          if (pc && cand) {
+            pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
           }
         });
       });
+    }
+
+    function removePeer(remoteUserId) {
+      if (peerConnections[remoteUserId]) {
+        peerConnections[remoteUserId].close();
+        delete peerConnections[remoteUserId];
+      }
+      const audioEl = document.getElementById(`audio-${remoteUserId}`);
+      if (audioEl) audioEl.remove();
     }
 
     window.toggleMic = function() {
@@ -431,15 +484,16 @@
         localStream.getTracks().forEach(track => track.stop());
         localStream = null;
       }
-      if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-      }
+
+      Object.keys(peerConnections).forEach(remoteUserId => removePeer(remoteUserId));
 
       if (activeVoiceChannel) {
-        remove(ref(db, `voiceSignals/${currentServer}/${activeVoiceChannel}/offers/${currentUserId}`));
-        remove(ref(db, `voiceSignals/${currentServer}/${activeVoiceChannel}/answers/${currentUserId}`));
+        remove(ref(db, `voiceRooms/${currentServer}/${activeVoiceChannel}/users/${currentUserId}`));
+        remove(ref(db, `voiceSignals/${currentServer}/${activeVoiceChannel}/${currentUserId}`));
       }
+
+      voiceListeners.forEach(l => off(l.ref, l.type, l.callback));
+      voiceListeners = [];
 
       activeVoiceChannel = null;
       document.getElementById('voice-channel-name').innerText = "Bağlı Değil";
