@@ -874,9 +874,17 @@
     }
 
     function createCustomServer() {
-      const name = prompt("Yeni Sunucu Adı:");
-      if (name) { set(ref(db, `servers/${name}/textChannels/genel-sohbet`), true); switchServer(name); }
-    }
+      const srvName = prompt("Oluşturmak istediğiniz sunucunun adını girin:");
+  if (!srvName) return;
+
+  // Sunucuyu sadece bu kullanıcıya özel kaydediyoruz
+  set(ref(db, `users/${currentUserId}/servers/${srvName}/textChannels/genel-sohbet`), true);
+  set(ref(db, `users/${currentUserId}/servers/${srvName}/voiceChannels/Genel Ses Odasi`), true);
+
+  currentServer = srvName;
+  isDMMode = false;
+  switchServer(srvName);
+}
 
     function createTextChannel() {
       const name = prompt("Yeni Yazı Kanalı Adı:");
