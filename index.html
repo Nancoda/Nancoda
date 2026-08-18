@@ -2,233 +2,51 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NANCODA</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { display: flex; height: 100vh; background-color: #313338; color: #dbdee1; overflow: hidden; }
 
-    body {
-      display: flex;
-      height: 100vh;
-      background-color: #313338;
-      color: #dbdee1;
-      overflow: hidden;
-    }
+    #sidebar { width: 240px; background-color: #2b2d31; display: flex; flex-direction: column; border-right: 1px solid #1f2023; }
+    .sidebar-header { padding: 16px; font-weight: bold; font-size: 16px; color: #f2f3f5; border-bottom: 1px solid #1f2023; }
+    .channel-section { padding: 12px 8px 4px 8px; font-size: 12px; font-weight: bold; color: #949ba4; text-transform: uppercase; }
+    .channel-btn { display: flex; align-items: center; padding: 8px 12px; margin: 2px 8px; border-radius: 4px; cursor: pointer; color: #949ba4; }
+    .channel-btn:hover { background-color: #35373c; color: #dbdee1; }
+    .channel-btn.active { background-color: #404249; color: #ffffff; }
+    .channel-icon { margin-right: 8px; font-size: 16px; }
 
-    /* Sol Panel (Sunucu/Kanal Listesi) */
-    #sidebar {
-      width: 240px;
-      background-color: #2b2d31;
-      display: flex;
-      flex-direction: column;
-      border-right: 1px solid #1f2023;
-    }
+    /* SES KANALI ALTINDAKİ KULLANICI LİSTESİ (DISCORD TARZI) */
+    .voice-members-list { margin: 2px 8px 8px 24px; display: flex; flex-direction: column; gap: 4px; }
+    .voice-member-item { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 4px; }
+    .voice-member-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
+    .voice-member-name { font-size: 13px; color: #949ba4; }
 
-    .sidebar-header {
-      padding: 16px;
-      font-weight: bold;
-      font-size: 16px;
-      color: #f2f3f5;
-      border-bottom: 1px solid #1f2023;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-    }
+    .user-panel { margin-top: auto; background-color: #232428; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .voice-status-box { background-color: #111214; padding: 8px 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 4px; }
+    .voice-status-header { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #23a55a; font-weight: bold; }
+    .voice-channel-title { font-size: 11px; color: #949ba4; }
+    .voice-controls { display: flex; gap: 6px; margin-top: 4px; }
 
-    .channel-section {
-      padding: 12px 8px 4px 8px;
-      font-size: 12px;
-      font-weight: bold;
-      color: #949ba4;
-      text-transform: uppercase;
-    }
-
-    .channel-btn {
-      display: flex;
-      align-items: center;
-      padding: 8px 12px;
-      margin: 2px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-      color: #949ba4;
-      transition: background 0.2s, color 0.2s;
-    }
-
-    .channel-btn:hover {
-      background-color: #35373c;
-      color: #dbdee1;
-    }
-
-    .channel-btn.active {
-      background-color: #404249;
-      color: #ffffff;
-    }
-
-    .channel-icon {
-      margin-right: 8px;
-      font-size: 16px;
-    }
-
-    /* Ses Kanalı Katılımcı Listesi */
-    .voice-members-list {
-      margin: 2px 8px 8px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .voice-member-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 8px;
-      border-radius: 4px;
-    }
-
-    .voice-member-avatar {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-
-    .voice-member-name {
-      font-size: 13px;
-      color: #949ba4;
-    }
-
-    /* Bottom Control Bar (Ses Durumu & Kullanıcı) */
-    .user-panel {
-      margin-top: auto;
-      background-color: #232428;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .voice-status-box {
-      background-color: #111214;
-      padding: 8px 10px;
-      border-radius: 6px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .voice-status-header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: #23a55a;
-      font-weight: bold;
-    }
-
-    .voice-channel-title {
-      font-size: 11px;
-      color: #949ba4;
-    }
-
-    .voice-controls {
-      display: flex;
-      gap: 6px;
-      margin-top: 4px;
-    }
-
-    .btn {
-      border: none;
-      padding: 6px 12px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.2s;
-      color: white;
-    }
-
+    .btn { border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; color: white; }
     .btn-green { background-color: #23a55a; }
-    .btn-green:hover { background-color: #1d8a4b; }
     .btn-red { background-color: #da373c; }
-    .btn-red:hover { background-color: #a1282c; }
     .btn-gray { background-color: #4e5058; }
-    .btn-gray:hover { background-color: #6d6f78; }
 
-    /* Ana Mesajlaşma Alanı */
-    #chat-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      background-color: #313338;
-    }
-
-    .chat-header {
-      height: 48px;
-      padding: 0 16px;
-      display: flex;
-      align-items: center;
-      border-bottom: 1px solid #1f2023;
-      font-weight: bold;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-    }
-
-    #messages-container {
-      flex: 1;
-      padding: 16px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .message {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .message-author {
-      font-size: 13px;
-      font-weight: bold;
-      color: #f2f3f5;
-    }
-
-    .message-content {
-      font-size: 14px;
-      color: #dbdee1;
-      line-height: 1.4;
-    }
-
-    .chat-input-container {
-      padding: 16px;
-      background-color: #313338;
-    }
-
-    .chat-input {
-      width: 100%;
-      padding: 12px 16px;
-      background-color: #383a40;
-      border: none;
-      border-radius: 8px;
-      color: #dbdee1;
-      font-size: 14px;
-      outline: none;
-    }
-
-    .chat-input::placeholder {
-      color: #80848e;
-    }
+    #chat-area { flex: 1; display: flex; flex-direction: column; background-color: #313338; }
+    .chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid #1f2023; font-weight: bold; }
+    #messages-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+    .message { display: flex; flex-direction: column; gap: 2px; }
+    .message-author { font-size: 13px; font-weight: bold; color: #f2f3f5; }
+    .message-content { font-size: 14px; color: #dbdee1; }
+    .chat-input-container { padding: 16px; background-color: #313338; }
+    .chat-input { width: 100%; padding: 12px 16px; background-color: #383a40; border: none; border-radius: 8px; color: #dbdee1; font-size: 14px; outline: none; }
   </style>
+
+  <!-- Agora RTC Engine (Ses İletimi İçin En Kararlı Altyapı) -->
+  <script src="https://download.agora.io/sdk/web/AgoraRTC_N-4.20.0.js"></script>
 </head>
 <body>
 
-  <!-- Hidden Audio Element for WebRTC Stream -->
-  <audio id="remoteAudio" autoplay></audio>
-
-  <!-- Sol Menü -->
   <div id="sidebar">
     <div class="sidebar-header">NANCODA</div>
     
@@ -236,17 +54,15 @@
     <div class="channel-btn active" onclick="switchTextChannel('genel')">
       <span class="channel-icon">#</span> genel
     </div>
-    <div class="channel-btn" onclick="switchTextChannel('duyurular')">
-      <span class="channel-icon">#</span> duyurular
-    </div>
 
     <div class="channel-section">Ses Kanalları</div>
-    <div class="channel-btn" id="voice-btn-sohbet">
+    <div class="channel-btn" id="voice-btn">
       <span class="channel-icon">🔊</span> Sesli Sohbet
     </div>
+    
+    <!-- SESE KATILAN KULLANICILAR BURADA LİSTELENİR -->
     <div id="voice-members-container" class="voice-members-list"></div>
 
-    <!-- Kullanıcı & Ses Durum Paneli -->
     <div class="user-panel">
       <div class="voice-status-box">
         <div class="voice-status-header">
@@ -254,7 +70,7 @@
         </div>
         <div class="voice-channel-title" id="voice-channel-name">Bağlı Değil</div>
         <div class="voice-controls">
-          <button class="btn btn-green" id="join-voice-btn" onclick="joinVoice('Sesli Sohbet')">Katıl</button>
+          <button class="btn btn-green" id="join-voice-btn" onclick="joinVoice()">Katıl</button>
           <button class="btn btn-red" id="leave-voice-btn" style="display:none;" onclick="leaveVoice()">Ayrıl</button>
           <button class="btn btn-gray" id="toggle-mic-btn" style="display:none;" onclick="toggleMic()">🎤 Mute</button>
         </div>
@@ -262,26 +78,21 @@
     </div>
   </div>
 
-  <!-- Ana Sohbet Alanı -->
   <div id="chat-area">
     <div class="chat-header">
       <span style="color:#80848e; margin-right:8px;">#</span>
       <span id="current-channel-title">genel</span>
     </div>
-
     <div id="messages-container"></div>
-
     <div class="chat-input-container">
       <input type="text" id="message-input" class="chat-input" placeholder="#genel kanalına mesaj gönder" onkeypress="handleKeyPress(event)" />
     </div>
   </div>
 
-  <!-- Firebase Integration -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, push, onValue, set, get, child, onChildAdded, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, push, onValue, set, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // FIREBASE YAPILANDIRMASI
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_AUTH_DOMAIN",
@@ -295,214 +106,118 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    const currentServer = "nancoda";
-    let currentTextChannel = "genel";
-    let activeVoiceChannel = null;
-    
     const randomId = Math.floor(Math.random() * 8999 + 1000);
     const currentUserId = "User_" + randomId;
     const currentUserAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${currentUserId}`;
 
-    let localStream = null;
-    let peerConnection = null;
+    // AGORA SETTINGS
+    const AGORA_APP_ID = "YOUR_AGORA_APP_ID"; // console.agora.io üzerinden aldığınız App ID
+    const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+    let localAudioTrack = null;
+    let isConnected = false;
     let isMuted = false;
 
-    const rtcConfig = {
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" }
-      ]
-    };
-
-    // --- YAZI SOHBETİ ---
-    window.switchTextChannel = function(channelName) {
-      currentTextChannel = channelName;
-      document.getElementById('current-channel-title').innerText = channelName;
-      document.getElementById('message-input').placeholder = `#${channelName} kanalına mesaj gönder`;
-      loadMessages();
-    };
-
-    window.handleKeyPress = function(event) {
-      if (event.key === 'Enter') {
+    // --- YAZI MESAJLARI ---
+    window.handleKeyPress = function(e) {
+      if (e.key === 'Enter') {
         const input = document.getElementById('message-input');
-        const text = input.value.trim();
-        if (text !== "") {
-          push(ref(db, `messages/${currentServer}/${currentTextChannel}`), {
+        if (input.value.trim() !== "") {
+          push(ref(db, 'messages/genel'), {
             author: currentUserId,
-            text: text,
-            timestamp: Date.now()
+            text: input.value.trim()
           });
           input.value = "";
         }
       }
     };
 
-    function loadMessages() {
-      const messagesRef = ref(db, `messages/${currentServer}/${currentTextChannel}`);
-      onValue(messagesRef, (snapshot) => {
-        const container = document.getElementById('messages-container');
-        container.innerHTML = "";
-        const data = snapshot.val();
-        if (data) {
-          Object.values(data).forEach(msg => {
-            const msgEl = document.createElement('div');
-            msgEl.className = 'message';
-            msgEl.innerHTML = `
+    onValue(ref(db, 'messages/genel'), (snapshot) => {
+      const container = document.getElementById('messages-container');
+      container.innerHTML = "";
+      const data = snapshot.val();
+      if (data) {
+        Object.values(data).forEach(msg => {
+          container.innerHTML += `
+            <div class="message">
               <div class="message-author">${msg.author}</div>
               <div class="message-content">${msg.text}</div>
-            `;
-            container.appendChild(msgEl);
-          });
-          container.scrollTop = container.scrollHeight;
-        }
-      });
-    }
+            </div>`;
+        });
+        container.scrollTop = container.scrollHeight;
+      }
+    });
 
-    // --- SES KANALI KULLANICILARI ---
-    function listenVoiceMembers(channelName) {
-      const membersRef = ref(db, `voiceMembers/${currentServer}/${channelName}`);
-      onValue(membersRef, (snapshot) => {
-        const container = document.getElementById('voice-members-container');
-        container.innerHTML = "";
-        const data = snapshot.val();
-        if (data) {
-          Object.values(data).forEach(member => {
-            const memberEl = document.createElement('div');
-            memberEl.className = 'voice-member-item';
-            memberEl.innerHTML = `
+    // --- SESLİ KANAL LİSTESİ CANLI DİNLEME ---
+    onValue(ref(db, 'voiceMembers/SesliSohbet'), (snapshot) => {
+      const container = document.getElementById('voice-members-container');
+      container.innerHTML = "";
+      const data = snapshot.val();
+      if (data) {
+        Object.values(data).forEach(member => {
+          container.innerHTML += `
+            <div class="voice-member-item">
               <img src="${member.avatar}" class="voice-member-avatar" />
               <span class="voice-member-name">${member.name}</span>
-            `;
-            container.appendChild(memberEl);
-          });
-        }
-      });
-    }
+            </div>`;
+        });
+      }
+    });
 
-    // --- WEBRTC SESLİ SOHBET ---
-    window.joinVoice = async function(channelName) {
-      if (activeVoiceChannel === channelName) return;
-      if (activeVoiceChannel) leaveVoice();
-
+    // --- SES SİSTEMİ (AGORA & FIREBASE) ---
+    window.joinVoice = async function() {
       try {
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        activeVoiceChannel = channelName;
+        // Agora Ses Kanalına Katılma
+        await client.join(AGORA_APP_ID, "SesliSohbet", null, currentUserId);
+        localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        await client.publish([localAudioTrack]);
 
-        document.getElementById('voice-channel-name').innerText = channelName;
-        document.getElementById('voice-status-text').innerText = "Bağlandı (Canlı)";
+        // Firebase Üye Kaydı
+        const userRef = ref(db, `voiceMembers/SesliSohbet/${currentUserId}`);
+        set(userRef, { name: currentUserId, avatar: currentUserAvatar });
+        onDisconnect(userRef).remove();
+
+        isConnected = true;
+        document.getElementById('voice-channel-name').innerText = "Sesli Sohbet";
+        document.getElementById('voice-status-text').innerText = "Ses Bağlandı";
         document.getElementById('join-voice-btn').style.display = 'none';
         document.getElementById('leave-voice-btn').style.display = 'inline-block';
         document.getElementById('toggle-mic-btn').style.display = 'inline-block';
-
-        const userMemberRef = ref(db, `voiceMembers/${currentServer}/${channelName}/${currentUserId}`);
-        set(userMemberRef, {
-          name: currentUserId,
-          avatar: currentUserAvatar
-        });
-        
-        onDisconnect(userMemberRef).remove();
-
-        initWebRTC(channelName);
       } catch (err) {
-        alert("Mikrofon izni alınamadı!");
+        alert("Sese bağlanırken hata oluştu veya mikrofon izni verilmedi.");
       }
     };
 
-    function initWebRTC(channelName) {
-      const signalRef = ref(db, `voiceSignals/${currentServer}/${channelName}`);
-
-      peerConnection = new RTCPeerConnection(rtcConfig);
-
-      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-      peerConnection.ontrack = (event) => {
-        const remoteAudio = document.getElementById('remoteAudio');
-        remoteAudio.srcObject = event.streams[0];
-        remoteAudio.play().catch(() => {});
-      };
-
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-          push(ref(db, `voiceSignals/${currentServer}/${channelName}/candidates/${currentUserId}`), event.candidate.toJSON());
-        }
-      };
-
-      get(child(signalRef, 'offers')).then(snapshot => {
-        const offers = snapshot.val() || {};
-        const existingUserIds = Object.keys(offers);
-
-        if (existingUserIds.length === 0) {
-          peerConnection.createOffer().then(offer => {
-            peerConnection.setLocalDescription(offer);
-            set(ref(db, `voiceSignals/${currentServer}/${channelName}/offers/${currentUserId}`), offer);
-          });
-        } else {
-          const targetUserId = existingUserIds[0];
-          const offer = offers[targetUserId];
-
-          peerConnection.setRemoteDescription(new RTCSessionDescription(offer)).then(() => {
-            return peerConnection.createAnswer();
-          }).then(answer => {
-            peerConnection.setLocalDescription(answer);
-            set(ref(db, `voiceSignals/${currentServer}/${channelName}/answers/${currentUserId}`), answer);
-          });
-        }
-      });
-
-      onValue(child(signalRef, 'answers'), snapshot => {
-        const answers = snapshot.val() || {};
-        Object.keys(answers).forEach(key => {
-          if (key !== String(currentUserId) && peerConnection.signalingState === "have-local-offer") {
-            peerConnection.setRemoteDescription(new RTCSessionDescription(answers[key]));
-          }
-        });
-      });
-
-      onChildAdded(child(signalRef, 'candidates'), snapshot => {
-        const candGroup = snapshot.val() || {};
-        Object.values(candGroup).forEach(cand => {
-          if (cand && peerConnection) {
-            peerConnection.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
-          }
-        });
-      });
-    }
+    client.on("user-published", async (user, mediaType) => {
+      await client.subscribe(user, mediaType);
+      if (mediaType === "audio") {
+        user.audioTrack.play();
+      }
+    });
 
     window.toggleMic = function() {
-      if (!localStream) return;
+      if (!localAudioTrack) return;
       isMuted = !isMuted;
-      localStream.getAudioTracks()[0].enabled = !isMuted;
+      localAudioTrack.setEnabled(!isMuted);
       const btn = document.getElementById('toggle-mic-btn');
       btn.innerText = isMuted ? "🎤 Unmute" : "🎤 Mute";
       btn.style.backgroundColor = isMuted ? "#da373c" : "#4e5058";
     };
 
-    window.leaveVoice = function() {
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        localStream = null;
+    window.leaveVoice = async function() {
+      if (localAudioTrack) {
+        localAudioTrack.close();
       }
-      if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-      }
+      await client.leave();
 
-      if (activeVoiceChannel) {
-        remove(ref(db, `voiceSignals/${currentServer}/${activeVoiceChannel}/offers/${currentUserId}`));
-        remove(ref(db, `voiceSignals/${currentServer}/${activeVoiceChannel}/answers/${currentUserId}`));
-        remove(ref(db, `voiceMembers/${currentServer}/${activeVoiceChannel}/${currentUserId}`));
-      }
+      remove(ref(db, `voiceMembers/SesliSohbet/${currentUserId}`));
 
-      activeVoiceChannel = null;
+      isConnected = false;
       document.getElementById('voice-channel-name').innerText = "Bağlı Değil";
       document.getElementById('voice-status-text').innerText = "Devre Dışı";
       document.getElementById('join-voice-btn').style.display = 'inline-block';
       document.getElementById('leave-voice-btn').style.display = 'none';
       document.getElementById('toggle-mic-btn').style.display = 'none';
     };
-
-    loadMessages();
-    listenVoiceMembers('Sesli Sohbet');
   </script>
 </body>
 </html>
