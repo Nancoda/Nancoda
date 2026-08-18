@@ -376,20 +376,11 @@
     let peerConnection = null;
     let isMuted = false;
     let activeVoiceChannel = null;
-    const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
     window.addEventListener('DOMContentLoaded', () => {
       if (localStorage.getItem('nc_theme') === 'light') {
         document.body.classList.add('light-theme');
       }
-
-      get(child(ref(db), 'servers/Ana Sunucu/textChannels')).then(snapshot => {
-        if (!snapshot.exists()) {
-          set(ref(db, 'servers/Ana Sunucu/textChannels/genel-sohbet'), true);
-          set(ref(db, 'servers/Ana Sunucu/textChannels/duyurular'), true);
-          set(ref(db, 'servers/Ana Sunucu/voiceChannels/Genel Ses Odasi'), true);
-        }
-      });
 
       const urlParams = new URLSearchParams(window.location.search);
       const inviteServer = urlParams.get('invite');
@@ -429,11 +420,10 @@
       document.getElementById('dm-home-btn').onclick = openDMView;
 
       document.getElementById('add-friend-btn').onclick = sendFriendRequest;
-      document.getElementById('open-friends-btn').onclick = () => { document.getElementById('friends-modal').style.display = 'flex'; };
+      document.getElementById('open-friends-btn').onclick = () => { document.getElementById('friends-modal').style.display = 'flex'; loadFriendRequests(); };
       document.getElementById('close-friends-btn').onclick = () => { document.getElementById('friends-modal').style.display = 'none'; };
       document.getElementById('close-friends-btn-2').onclick = () => { document.getElementById('friends-modal').style.display = 'none'; };
 
-      // Ayarlar Modalı Kontrolleri
       document.getElementById('open-settings-btn').onclick = openSettings;
       document.getElementById('close-settings-btn').onclick = () => { document.getElementById('settings-modal').style.display = 'none'; };
       document.getElementById('save-settings-btn').onclick = saveSettings;
@@ -444,7 +434,6 @@
         localStorage.setItem('nc_theme', isLight ? 'light' : 'dark');
       };
 
-      // Emoji Paneli
       document.getElementById('toggle-emoji-btn').onclick = () => {
         const picker = document.getElementById('emoji-picker');
         picker.style.display = picker.style.display === 'grid' ? 'none' : 'grid';
@@ -456,11 +445,9 @@
         };
       });
 
-      // Resim Yükleme
       document.getElementById('upload-image-btn').onclick = () => document.getElementById('image-input').click();
       document.getElementById('image-input').onchange = handleImageUpload;
 
-      // Sesli Sohbet
       document.getElementById('join-voice-btn').onclick = () => joinVoice("Genel Ses Odasi");
       document.getElementById('leave-voice-btn').onclick = leaveVoice;
       document.getElementById('toggle-mic-btn').onclick = toggleMic;
@@ -579,20 +566,14 @@
       localStorage.setItem('nc_avatar', currentUserAvatar);
       set(ref(db, `users/${currentUserId}/avatar`), currentUserAvatar);
 
-      document.getElementById('my-username-display').innerText = currentUser;
       document.getElementById('my-avatar-img').src = currentUserAvatar;
-
+      document.getElementById('my-username-display').innerText = currentUser;
       document.getElementById('settings-modal').style.display = 'none';
-      alert("Ayarlar başarıyla kaydedildi!");
     }
 
     function logout() {
-      if (confirm("Çıkış yapmak istediğine emin misin?")) {
-        localStorage.removeItem('nc_username');
-        localStorage.removeItem('nc_userid');
-        localStorage.removeItem('nc_avatar');
-        location.reload();
-      }
+      localStorage.clear();
+      window.location.reload();
     }
 
     function initApp() {
@@ -600,337 +581,276 @@
       document.getElementById('my-id-display').innerText = `ID: #${currentUserId}`;
       document.getElementById('my-avatar-img').src = currentUserAvatar;
 
-      listenServers();
-      listenChannels();
-      listenMessages();
-      listenFriendRequests();
+      loadServers();
+      loadChannels();
+      loadMessages();
     }
 
-    function listenServers() {
-      onValue(ref(db, 'servers'), snapshot => {
+    // --- GÜNCELLENMİŞ SUNUCU MANTIĞI (KİŞİYE ÖZEL) ---
+    function loadServers() {
+      onValue(ref(db, `users/${currentUserId}/servers`), (snapshot) => {
         const servers = snapshot.val() || {};
         const container = document.getElementById('server-list-container');
         container.innerHTML = '';
 
-        Object.keys(servers).forEach(srvName => {
-          const div = document.createElement('div');
-          div.className = `server-icon ${!isDMMode && srvName === currentServer ? 'active' : ''}`;
-          div.innerText = srvName.substring(0, 2).toUpperCase();
-          div.onclick = () => switchServer(srvName);
-          container.appendChild(div);
-        });
-      });
-    }
-
-    function listenChannels() {
-      if (isDMMode) return;
-
-      onValue(ref(db, `servers/${currentServer}`), snapshot => {
-        const data = snapshot.val() || {};
-        const textChannels = data.textChannels || {};
-        const voiceChannels = data.voiceChannels || {};
-
-        const textContainer = document.getElementById('text-channel-container');
-        textContainer.innerHTML = '';
-        Object.keys(textChannels).forEach(ch => {
-          const div = document.createElement('div');
-          div.className = `channel-item ${ch === currentChannel ? 'active' : ''}`;
-          div.innerHTML = `<span>💬 #${ch}</span>`;
-          div.onclick = () => selectChannel(ch);
-          textContainer.appendChild(div);
-        });
-
-        const voiceContainer = document.getElementById('voice-channel-container');
-        voiceContainer.innerHTML = '';
-        Object.keys(voiceChannels).forEach(ch => {
-          const div = document.createElement('div');
-          div.className = 'channel-item';
-          div.innerHTML = `<span>🔊 ${ch}</span>`;
-          div.onclick = () => joinVoice(ch);
-          voiceContainer.appendChild(div);
-        });
-      });
-    }
-
-    function listenMessages() {
-      if (isDMMode) return;
-
-      const sanitizedServer = currentServer.replace(/[.#$/[\]]/g, "_");
-      const sanitizedChannel = currentChannel.replace(/[.#$/[\]]/g, "_");
-
-      onValue(ref(db, `messages/${sanitizedServer}/${sanitizedChannel}`), snapshot => {
-        const msgBox = document.getElementById('chat-box');
-        msgBox.innerHTML = '';
-        const msgs = snapshot.val() || {};
-
-        Object.values(msgs).forEach(m => {
-          const msgDiv = document.createElement('div');
-          msgDiv.className = 'message';
-          
-          let contentHtml = `<div class="user">${m.user}</div>`;
-          if (m.text) contentHtml += `<div>${m.text}</div>`;
-          if (m.imageUrl) contentHtml += `<img src="${m.imageUrl}" class="msg-img" onclick="window.open('${m.imageUrl}')">`;
-
-          msgDiv.innerHTML = `
-            <img src="${m.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=Nancoda1'}" class="msg-avatar">
-            <div class="msg-content">${contentHtml}</div>
-          `;
-          msgBox.appendChild(msgDiv);
-        });
-        msgBox.scrollTop = msgBox.scrollHeight;
-      });
-    }
-
-    function sendMessage(imageUrl = null) {
-      const input = document.getElementById('msgInput');
-      const text = input.value.trim();
-      if (!text && !imageUrl) return;
-
-      if (isDMMode) {
-        if (!activeDMUserId) { alert("Lütfen önce mesaj göndereceğin arkadaşını seç!"); return; }
-        const dmChatId = [currentUserId, activeDMUserId].sort().join('_');
-
-        push(ref(db, `directMessages/${dmChatId}`), {
-          user: `${currentUser} (#${currentUserId})`,
-          avatar: currentUserAvatar,
-          text: text || null,
-          imageUrl: imageUrl || null,
-          timestamp: Date.now()
-        });
-      } else {
-        const sanitizedServer = currentServer.replace(/[.#$/[\]]/g, "_");
-        const sanitizedChannel = currentChannel.replace(/[.#$/[\]]/g, "_");
-
-        push(ref(db, `messages/${sanitizedServer}/${sanitizedChannel}`), {
-          user: `${currentUser} (#${currentUserId})`,
-          avatar: currentUserAvatar,
-          text: text || null,
-          imageUrl: imageUrl || null,
-          timestamp: Date.now()
-        });
-      }
-
-      input.value = '';
-    }
-
-    /* ÖZEL MESAJ (DM) BÖLÜMÜ */
-    function openDMView() {
-      isDMMode = true;
-      document.getElementById('dm-home-btn').classList.add('active');
-      document.getElementById('current-server-title').innerText = "Direkt Mesajlar";
-      document.getElementById('leave-server-btn').style.display = 'none';
-      document.getElementById('copy-invite-btn').style.display = 'none';
-      document.getElementById('channel-header-text').style.display = 'none';
-      document.getElementById('channel-header-voice').style.display = 'none';
-      document.getElementById('voice-panel-box').style.display = 'none';
-      document.getElementById('chat-box').innerHTML = '';
-      document.getElementById('current-channel-title').innerText = "💬 Bir sohbet seçin";
-
-      listenServers();
-
-      get(child(ref(db), `friends/${currentUserId}`)).then(snapshot => {
-        const friends = snapshot.val() || {};
-        const textContainer = document.getElementById('text-channel-container');
-        const voiceContainer = document.getElementById('voice-channel-container');
-        
-        textContainer.innerHTML = '';
-        voiceContainer.innerHTML = '';
-
-        const friendIds = Object.keys(friends);
-        if (friendIds.length === 0) {
-          textContainer.innerHTML = '<div style="font-size:12px; color:#aaa; padding:8px;">Henüz ekli bir arkadaşın yok.</div>';
-          return;
+        if (Object.keys(servers).length === 0) {
+          servers["Ana Sunucu"] = { textChannels: { "genel-sohbet": true } };
         }
 
-        friendIds.forEach(fId => {
-          get(child(ref(db), `users/${fId}`)).then(userSnap => {
-            if (userSnap.exists()) {
-              const uData = userSnap.val();
-              const div = document.createElement('div');
-              div.className = `channel-item ${activeDMUserId === fId ? 'active' : ''}`;
-              div.innerHTML = `<span>👤 ${uData.name}</span>`;
-              div.onclick = () => selectDMUser(fId, uData.name);
-              textContainer.appendChild(div);
-            }
-          });
-        });
-      });
-    }
-
-    function selectDMUser(targetId, targetName) {
-      activeDMUserId = targetId;
-      document.getElementById('current-channel-title').innerText = `@ ${targetName}`;
-      
-      document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
-      event.currentTarget.classList.add('active');
-
-      listenDMMessages(targetId);
-    }
-
-    function listenDMMessages(targetId) {
-      const dmChatId = [currentUserId, targetId].sort().join('_');
-
-      onValue(ref(db, `directMessages/${dmChatId}`), snapshot => {
-        const msgBox = document.getElementById('chat-box');
-        msgBox.innerHTML = '';
-        const msgs = snapshot.val() || {};
-
-        Object.values(msgs).forEach(m => {
-          const msgDiv = document.createElement('div');
-          msgDiv.className = 'message';
-          
-          let contentHtml = `<div class="user">${m.user}</div>`;
-          if (m.text) contentHtml += `<div>${m.text}</div>`;
-          if (m.imageUrl) contentHtml += `<img src="${m.imageUrl}" class="msg-img" onclick="window.open('${m.imageUrl}')">`;
-
-          msgDiv.innerHTML = `
-            <img src="${m.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=Nancoda1'}" class="msg-avatar">
-            <div class="msg-content">${contentHtml}</div>
-          `;
-          msgBox.appendChild(msgDiv);
-        });
-        msgBox.scrollTop = msgBox.scrollHeight;
-      });
-    }
-
-    function leaveCurrentServer() {
-      if (currentServer === "Ana Sunucu") {
-        alert("Ana Sunucu'dan ayrılamazsın!");
-        return;
-      }
-      
-      if (confirm(`"${currentServer}" sunucusundan ayrılmak istediğine emin misin?`)) {
-        switchServer("Ana Sunucu");
-        alert("Sunucudan ayrıldın.");
-      }
-    }
-
-    function handleImageUpload(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Resim boyutu çok yüksek! Lütfen 2MB'tan küçük bir görsel seçin.");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        sendMessage(event.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function sendFriendRequest() {
-      const targetId = prompt("Eklemek istediğin arkadaşının ID numarasını gir:");
-      if (!targetId) return;
-      if (targetId == currentUserId) { alert("Kendi ID numarana istek gönderemezsin!"); return; }
-
-      get(child(ref(db), 'users/' + targetId)).then(snapshot => {
-        if (!snapshot.exists()) { alert("Bu ID'ye sahip bir kullanıcı bulunamadı!"); return; }
-        const targetUser = snapshot.val();
-        set(ref(db, `friendRequests/${targetId}/${currentUserId}`), { fromId: currentUserId, fromName: currentUser });
-        alert(`${targetUser.name} (ID: #${targetUser.id}) kullanıcısına arkadaşlık isteği gönderildi!`);
-      });
-    }
-
-    function listenFriendRequests() {
-      onValue(ref(db, `friendRequests/${currentUserId}`), snapshot => {
-        const requests = snapshot.val() || {};
-        const container = document.getElementById('requests-list');
-        container.innerHTML = '';
-
-        const keys = Object.keys(requests);
-        if (keys.length === 0) { container.innerHTML = '<p style="color:#aaa; font-size:13px;">Gelen istek bulunmuyor.</p>'; return; }
-
-        keys.forEach(key => {
-          const req = requests[key];
+        Object.keys(servers).forEach(serverName => {
           const div = document.createElement('div');
-          div.className = 'req-item';
-          div.innerHTML = `
-            <span style="font-size:13px; color:var(--text-heading);"><b>${req.fromName}</b> (ID: #${req.fromId})</span>
-            <div>
-              <button class="btn-sm accept-btn" style="background-color:#23a55a;">Kabul Et</button>
-              <button class="btn-sm reject-btn" style="background-color:#da373c;">Reddet</button>
-            </div>
-          `;
-          div.querySelector('.accept-btn').onclick = () => acceptRequest(req.fromId);
-          div.querySelector('.reject-btn').onclick = () => rejectRequest(req.fromId);
+          div.className = `server-icon ${serverName === currentServer && !isDMMode ? 'active' : ''}`;
+          div.innerText = serverName.substring(0, 2).toUpperCase();
+          div.title = serverName;
+          div.onclick = () => switchServer(serverName);
           container.appendChild(div);
         });
       });
-    }
-
-    function acceptRequest(fromId) {
-      set(ref(db, `friends/${currentUserId}/${fromId}`), true);
-      set(ref(db, `friends/${fromId}/${currentUserId}`), true);
-      remove(ref(db, `friendRequests/${currentUserId}/${fromId}`));
-      alert("Arkadaşlık isteği kabul edildi!");
-      if (isDMMode) openDMView();
-    }
-
-    function rejectRequest(fromId) {
-      remove(ref(db, `friendRequests/${currentUserId}/${fromId}`));
     }
 
     function createCustomServer() {
       const srvName = prompt("Oluşturmak istediğiniz sunucunun adını girin:");
-  if (!srvName) return;
-
-  // Sunucuyu sadece bu kullanıcıya özel kaydediyoruz
-  set(ref(db, `users/${currentUserId}/servers/${srvName}/textChannels/genel-sohbet`), true);
-  set(ref(db, `users/${currentUserId}/servers/${srvName}/voiceChannels/Genel Ses Odasi`), true);
-
-  currentServer = srvName;
-  isDMMode = false;
-  switchServer(srvName);
-}
-
-    function createTextChannel() {
-      const name = prompt("Yeni Yazı Kanalı Adı:");
-      if (name) { set(ref(db, `servers/${currentServer}/textChannels/${name}`), true); selectChannel(name); }
-    }
-
-    function createVoiceChannel() {
-      const name = prompt("Yeni Ses Kanalı Adı:");
-      if (name) { set(ref(db, `servers/${currentServer}/voiceChannels/${name}`), true); }
-    }
-
-    function switchServer(name) {
-      isDMMode = false;
-      activeDMUserId = null;
-      document.getElementById('dm-home-btn').classList.remove('active');
-      document.getElementById('leave-server-btn').style.display = 'inline-block';
-      document.getElementById('copy-invite-btn').style.display = 'inline-block';
-      document.getElementById('channel-header-text').style.display = 'flex';
-      document.getElementById('channel-header-voice').style.display = 'flex';
-      document.getElementById('voice-panel-box').style.display = 'flex';
-
-      currentServer = name;
-      currentChannel = "genel-sohbet";
-      document.getElementById('current-server-title').innerText = name;
-      document.getElementById('current-channel-title').innerText = "💬 genel-sohbet";
+      if (!srvName) return;
       
-      listenServers();
-      listenChannels();
-      listenMessages();
+      set(ref(db, `users/${currentUserId}/servers/${srvName}/textChannels/genel-sohbet`), true);
+      set(ref(db, `users/${currentUserId}/servers/${srvName}/voiceChannels/Genel Ses Odasi`), true);
+      
+      currentServer = srvName;
+      isDMMode = false;
+      switchServer(srvName);
     }
 
-    function selectChannel(name) {
-      currentChannel = name;
-      document.getElementById('current-channel-title').innerText = `💬 ${name}`;
-      listenChannels();
-      listenMessages();
+    function switchServer(serverName) {
+      currentServer = serverName;
+      isDMMode = false;
+      currentChannel = "genel-sohbet";
+      document.getElementById('current-server-title').innerText = serverName;
+      document.getElementById('voice-panel-box').style.display = 'flex';
+      
+      loadServers();
+      loadChannels();
+      loadMessages();
     }
 
     function copyInviteLink() {
       const inviteUrl = `${window.location.origin}${window.location.pathname}?invite=${encodeURIComponent(currentServer)}`;
       navigator.clipboard.writeText(inviteUrl).then(() => {
-        alert(`"${currentServer}" sunucusunun davet linki kopyalandı!\n\nLink: ${inviteUrl}`);
-      }).catch(() => { alert(`Davet Linkin: ${inviteUrl}`); });
+        alert("Davet linki kopyalandı:\n" + inviteUrl);
+      });
     }
 
-    /* WEBRTC SESLİ SOHBET */
+    function leaveCurrentServer() {
+      if(currentServer === "Ana Sunucu") {
+        alert("Ana sunucudan ayrılamazsınız.");
+        return;
+      }
+      switchServer("Ana Sunucu");
+    }
+
+    function loadChannels() {
+      if (isDMMode) return;
+
+      onValue(ref(db, `users/${currentUserId}/servers/${currentServer}/textChannels`), (snapshot) => {
+        const channels = snapshot.val() || {};
+        const container = document.getElementById('text-channel-container');
+        container.innerHTML = '';
+
+        Object.keys(channels).forEach(channelName => {
+          const div = document.createElement('div');
+          div.className = `channel-item ${channelName === currentChannel ? 'active' : ''}`;
+          div.innerHTML = `<span># ${channelName}</span>`;
+          div.onclick = () => {
+            currentChannel = channelName;
+            document.getElementById('current-channel-title').innerText = `💬 ${channelName}`;
+            loadChannels();
+            loadMessages();
+          };
+          container.appendChild(div);
+        });
+      });
+
+      onValue(ref(db, `users/${currentUserId}/servers/${currentServer}/voiceChannels`), (snapshot) => {
+        const channels = snapshot.val() || {};
+        const container = document.getElementById('voice-channel-container');
+        container.innerHTML = '';
+
+        Object.keys(channels).forEach(channelName => {
+          const div = document.createElement('div');
+          div.className = 'channel-item';
+          div.innerHTML = `<span>🔊 ${channelName}</span>`;
+          div.onclick = () => joinVoice(channelName);
+          container.appendChild(div);
+        });
+      });
+    }
+
+    function createTextChannel() {
+      const chName = prompt("Yeni yazı kanalı adını girin:");
+      if (!chName) return;
+      set(ref(db, `users/${currentUserId}/servers/${currentServer}/textChannels/${chName.toLowerCase().replace(/\s+/g, '-')}`), true);
+    }
+
+    function createVoiceChannel() {
+      const chName = prompt("Yeni ses kanalı adını girin:");
+      if (!chName) return;
+      set(ref(db, `users/${currentUserId}/servers/${currentServer}/voiceChannels/${chName}`), true);
+    }
+
+    function loadMessages() {
+      let path = isDMMode 
+        ? `dms/${getDMId(currentUserId, activeDMUserId)}` 
+        : `messages/${currentUserId}/${currentServer}/${currentChannel}`;
+
+      onValue(ref(db, path), (snapshot) => {
+        const chatBox = document.getElementById('chat-box');
+        chatBox.innerHTML = '';
+        const messages = snapshot.val();
+        
+        if (messages) {
+          Object.values(messages).forEach(msg => {
+            const div = document.createElement('div');
+            div.className = 'message';
+            const imgHtml = msg.img ? `<img src="${msg.img}" class="msg-img">` : '';
+            const textHtml = msg.text ? `<div>${msg.text}</div>` : '';
+            
+            div.innerHTML = `
+              <img src="${msg.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=Nancoda'}" class="msg-avatar">
+              <div class="msg-content">
+                <div class="user">${msg.author} <span style="color:#777; font-size:10px;">ID:${msg.authorId}</span></div>
+                ${textHtml}
+                ${imgHtml}
+              </div>
+            `;
+            chatBox.appendChild(div);
+          });
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
+      });
+    }
+
+    function sendMessage(imgUrl = null) {
+      const input = document.getElementById('msgInput');
+      const text = input.value.trim();
+      
+      if (!text && !imgUrl) return;
+
+      const messageData = {
+        author: currentUser,
+        authorId: currentUserId,
+        avatar: currentUserAvatar,
+        text: text,
+        img: imgUrl,
+        timestamp: Date.now()
+      };
+
+      let path = isDMMode 
+        ? `dms/${getDMId(currentUserId, activeDMUserId)}` 
+        : `messages/${currentUserId}/${currentServer}/${currentChannel}`;
+
+      push(ref(db, path), messageData);
+      input.value = '';
+    }
+
+    function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        sendMessage(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function openDMView() {
+      isDMMode = true;
+      document.getElementById('current-server-title').innerText = "Direkt Mesajlar";
+      document.getElementById('voice-panel-box').style.display = 'none';
+      document.getElementById('current-channel-title').innerText = "💬 Özel Mesajlar";
+      
+      document.getElementById('text-channel-container').innerHTML = '';
+      document.getElementById('voice-channel-container').innerHTML = '';
+      document.getElementById('chat-box').innerHTML = '<div style="text-align:center; color:#949ba4; margin-top:20px;">Sohbet etmek için listeden bir arkadaş seçin.</div>';
+      
+      loadServers();
+      loadFriendList();
+    }
+
+    function loadFriendList() {
+      onValue(ref(db, `users/${currentUserId}/friends`), (snapshot) => {
+        if (!isDMMode) return;
+        
+        const friends = snapshot.val() || {};
+        const container = document.getElementById('text-channel-container');
+        container.innerHTML = '';
+
+        Object.keys(friends).forEach(friendId => {
+          const div = document.createElement('div');
+          div.className = `channel-item ${activeDMUserId === friendId ? 'active' : ''}`;
+          div.innerHTML = `<span>👤 Kullanıcı #${friendId}</span>`;
+          div.onclick = () => {
+            activeDMUserId = friendId;
+            document.getElementById('current-channel-title').innerText = `💬 DM - #${friendId}`;
+            loadFriendList();
+            loadMessages();
+          };
+          container.appendChild(div);
+        });
+      });
+    }
+
+    function sendFriendRequest() {
+      const targetId = prompt("Eklemek istediğiniz kullanıcının ID'sini girin (Sadece rakam):");
+      if (!targetId || targetId === currentUserId) return;
+
+      set(ref(db, `friendRequests/${targetId}/${currentUserId}`), {
+        from: currentUserId,
+        name: currentUser,
+        timestamp: Date.now()
+      });
+      alert("Arkadaşlık isteği gönderildi!");
+    }
+
+    function loadFriendRequests() {
+      onValue(ref(db, `friendRequests/${currentUserId}`), (snapshot) => {
+        const requests = snapshot.val() || {};
+        const list = document.getElementById('requests-list');
+        list.innerHTML = '';
+
+        Object.keys(requests).forEach(reqId => {
+          const req = requests[reqId];
+          const div = document.createElement('div');
+          div.className = 'req-item';
+          div.innerHTML = `
+            <span style="font-size:14px;">${req.name} (ID: ${req.from})</span>
+            <div>
+              <button class="btn-sm" style="background:#23a55a;" onclick="acceptFriend('${req.from}')">Kabul</button>
+              <button class="btn-sm" style="background:#da373c;" onclick="rejectFriend('${req.from}')">Red</button>
+            </div>
+          `;
+          list.appendChild(div);
+        });
+        
+        if (Object.keys(requests).length === 0) {
+          list.innerHTML = '<span style="font-size:13px; color:#949ba4;">Bekleyen istek yok.</span>';
+        }
+      });
+    }
+
+    window.acceptFriend = function(friendId) {
+      set(ref(db, `users/${currentUserId}/friends/${friendId}`), true);
+      set(ref(db, `users/${friendId}/friends/${currentUserId}`), true);
+      remove(ref(db, `friendRequests/${currentUserId}/${friendId}`));
+    };
+
+    window.rejectFriend = function(friendId) {
+      remove(ref(db, `friendRequests/${currentUserId}/${friendId}`));
+    };
+
+    function getDMId(id1, id2) {
+      return parseInt(id1) < parseInt(id2) ? `${id1}_${id2}` : `${id2}_${id1}`;
+    }
+
     async function joinVoice(channelName) {
       if (activeVoiceChannel === channelName) return;
       if (activeVoiceChannel) leaveVoice();
@@ -940,51 +860,19 @@
         activeVoiceChannel = channelName;
 
         document.getElementById('voice-channel-name').innerText = channelName;
-        document.getElementById('voice-status-text').innerText = "Bağlandı (Canlı)";
+        document.getElementById('voice-status-text').innerText = "Bağlandı";
         document.getElementById('join-voice-btn').style.display = 'none';
         document.getElementById('leave-voice-btn').style.display = 'inline-block';
         document.getElementById('toggle-mic-btn').style.display = 'inline-block';
 
-        initWebRTC(channelName);
-      } catch (err) {
-        alert("Mikrofon izni verilemedi veya cihaz bulunamadı!");
-      }
-    }
-
-    function initWebRTC(channelName) {
-      peerConnection = new RTCPeerConnection(rtcConfig);
-      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-      peerConnection.ontrack = (event) => {
-        document.getElementById('remoteAudio').srcObject = event.streams[0];
-      };
-
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-          push(ref(db, `voiceSignals/${currentServer}/${channelName}/candidates/${currentUserId}`), event.candidate.toJSON());
-        }
-      };
-
-      peerConnection.createOffer().then(offer => {
-        peerConnection.setLocalDescription(offer);
-        set(ref(db, `voiceSignals/${currentServer}/${channelName}/offers/${currentUserId}`), offer);
-      });
-
-      onValue(ref(db, `voiceSignals/${currentServer}/${channelName}/answers`), snapshot => {
-        const answers = snapshot.val() || {};
-        Object.keys(answers).forEach(key => {
-          if (key !== currentUserId && peerConnection.signalingState !== "stable") {
-            peerConnection.setRemoteDescription(new RTCSessionDescription(answers[key]));
-          }
+        set(ref(db, `voiceRooms/${currentServer}/${channelName}/${currentUserId}`), {
+          name: currentUser,
+          active: true
         });
-      });
 
-      onChildAdded(ref(db, `voiceSignals/${currentServer}/${channelName}/candidates`), snapshot => {
-        const cand = snapshot.val();
-        if (cand && peerConnection) {
-          peerConnection.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
-        }
-      });
+      } catch (err) {
+        alert("Mikrofon erişimi engellendi!");
+      }
     }
 
     function toggleMic() {
@@ -1001,16 +889,9 @@
         localStream.getTracks().forEach(track => track.stop());
         localStream = null;
       }
-      if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-      }
-
       if (activeVoiceChannel) {
-        remove(ref(db, `voiceSignals/${currentServer}/${activeVoiceChannel}/offers/${currentUserId}`));
-        remove(ref(db, `voiceSignals/${currentServer}/${activeVoiceChannel}/answers/${currentUserId}`));
+        remove(ref(db, `voiceRooms/${currentServer}/${activeVoiceChannel}/${currentUserId}`));
       }
-
       activeVoiceChannel = null;
       document.getElementById('voice-channel-name').innerText = "Bağlı Değil";
       document.getElementById('voice-status-text').innerText = "Devre Dışı";
