@@ -376,11 +376,20 @@
     let peerConnection = null;
     let isMuted = false;
     let activeVoiceChannel = null;
+    const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
     window.addEventListener('DOMContentLoaded', () => {
       if (localStorage.getItem('nc_theme') === 'light') {
         document.body.classList.add('light-theme');
       }
+
+      get(child(ref(db), 'servers/Ana Sunucu/textChannels')).then(snapshot => {
+        if (!snapshot.exists()) {
+          set(ref(db, 'servers/Ana Sunucu/textChannels/genel-sohbet'), true);
+          set(ref(db, 'servers/Ana Sunucu/textChannels/duyurular'), true);
+          set(ref(db, 'servers/Ana Sunucu/voiceChannels/Genel Ses Odasi'), true);
+        }
+      });
 
       const urlParams = new URLSearchParams(window.location.search);
       const inviteServer = urlParams.get('invite');
@@ -424,6 +433,7 @@
       document.getElementById('close-friends-btn').onclick = () => { document.getElementById('friends-modal').style.display = 'none'; };
       document.getElementById('close-friends-btn-2').onclick = () => { document.getElementById('friends-modal').style.display = 'none'; };
 
+      // Ayarlar Modalı Kontrolleri
       document.getElementById('open-settings-btn').onclick = openSettings;
       document.getElementById('close-settings-btn').onclick = () => { document.getElementById('settings-modal').style.display = 'none'; };
       document.getElementById('save-settings-btn').onclick = saveSettings;
@@ -434,6 +444,7 @@
         localStorage.setItem('nc_theme', isLight ? 'light' : 'dark');
       };
 
+      // Emoji Paneli
       document.getElementById('toggle-emoji-btn').onclick = () => {
         const picker = document.getElementById('emoji-picker');
         picker.style.display = picker.style.display === 'grid' ? 'none' : 'grid';
@@ -445,9 +456,11 @@
         };
       });
 
+      // Resim Yükleme
       document.getElementById('upload-image-btn').onclick = () => document.getElementById('image-input').click();
       document.getElementById('image-input').onchange = handleImageUpload;
 
+      // Sesli Sohbet
       document.getElementById('join-voice-btn').onclick = () => joinVoice("Genel Ses Odasi");
       document.getElementById('leave-voice-btn').onclick = leaveVoice;
       document.getElementById('toggle-mic-btn').onclick = toggleMic;
@@ -576,6 +589,8 @@
       window.location.reload();
     }
 
+    // --- UYGULAMA BAŞLATMA VE VERİ YÜKLEME ---
+
     function initApp() {
       document.getElementById('my-username-display').innerText = currentUser;
       document.getElementById('my-id-display').innerText = `ID: #${currentUserId}`;
@@ -586,16 +601,12 @@
       loadMessages();
     }
 
-    // --- GÜNCELLENMİŞ SUNUCU MANTIĞI (KİŞİYE ÖZEL) ---
+    // --- SUNUCU MANTIĞI ---
     function loadServers() {
-      onValue(ref(db, `users/${currentUserId}/servers`), (snapshot) => {
+      onValue(ref(db, 'servers'), (snapshot) => {
         const servers = snapshot.val() || {};
         const container = document.getElementById('server-list-container');
         container.innerHTML = '';
-
-        if (Object.keys(servers).length === 0) {
-          servers["Ana Sunucu"] = { textChannels: { "genel-sohbet": true } };
-        }
 
         Object.keys(servers).forEach(serverName => {
           const div = document.createElement('div');
@@ -612,8 +623,8 @@
       const srvName = prompt("Oluşturmak istediğiniz sunucunun adını girin:");
       if (!srvName) return;
       
-      set(ref(db, `users/${currentUserId}/servers/${srvName}/textChannels/genel-sohbet`), true);
-      set(ref(db, `users/${currentUserId}/servers/${srvName}/voiceChannels/Genel Ses Odasi`), true);
+      set(ref(db, `servers/${srvName}/textChannels/genel-sohbet`), true);
+      set(ref(db, `servers/${srvName}/voiceChannels/Genel Ses Odasi`), true);
       
       currentServer = srvName;
       isDMMode = false;
@@ -647,10 +658,11 @@
       switchServer("Ana Sunucu");
     }
 
+    // --- KANAL MANTIĞI ---
     function loadChannels() {
       if (isDMMode) return;
 
-      onValue(ref(db, `users/${currentUserId}/servers/${currentServer}/textChannels`), (snapshot) => {
+      onValue(ref(db, `servers/${currentServer}/textChannels`), (snapshot) => {
         const channels = snapshot.val() || {};
         const container = document.getElementById('text-channel-container');
         container.innerHTML = '';
@@ -669,7 +681,7 @@
         });
       });
 
-      onValue(ref(db, `users/${currentUserId}/servers/${currentServer}/voiceChannels`), (snapshot) => {
+      onValue(ref(db, `servers/${currentServer}/voiceChannels`), (snapshot) => {
         const channels = snapshot.val() || {};
         const container = document.getElementById('voice-channel-container');
         container.innerHTML = '';
@@ -687,19 +699,20 @@
     function createTextChannel() {
       const chName = prompt("Yeni yazı kanalı adını girin:");
       if (!chName) return;
-      set(ref(db, `users/${currentUserId}/servers/${currentServer}/textChannels/${chName.toLowerCase().replace(/\s+/g, '-')}`), true);
+      set(ref(db, `servers/${currentServer}/textChannels/${chName.toLowerCase().replace(/\s+/g, '-')}`), true);
     }
 
     function createVoiceChannel() {
       const chName = prompt("Yeni ses kanalı adını girin:");
       if (!chName) return;
-      set(ref(db, `users/${currentUserId}/servers/${currentServer}/voiceChannels/${chName}`), true);
+      set(ref(db, `servers/${currentServer}/voiceChannels/${chName}`), true);
     }
 
+    // --- MESAJLAŞMA MANTIĞI ---
     function loadMessages() {
       let path = isDMMode 
         ? `dms/${getDMId(currentUserId, activeDMUserId)}` 
-        : `messages/${currentUserId}/${currentServer}/${currentChannel}`;
+        : `messages/${currentServer}/${currentChannel}`;
 
       onValue(ref(db, path), (snapshot) => {
         const chatBox = document.getElementById('chat-box');
@@ -745,7 +758,7 @@
 
       let path = isDMMode 
         ? `dms/${getDMId(currentUserId, activeDMUserId)}` 
-        : `messages/${currentUserId}/${currentServer}/${currentChannel}`;
+        : `messages/${currentServer}/${currentChannel}`;
 
       push(ref(db, path), messageData);
       input.value = '';
@@ -757,11 +770,12 @@
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        sendMessage(e.target.result);
+        sendMessage(e.target.result); // Base64 olarak gönder
       };
       reader.readAsDataURL(file);
     }
 
+    // --- DM & ARKADAŞLIK MANTIĞI ---
     function openDMView() {
       isDMMode = true;
       document.getElementById('current-server-title').innerText = "Direkt Mesajlar";
@@ -851,6 +865,7 @@
       return parseInt(id1) < parseInt(id2) ? `${id1}_${id2}` : `${id2}_${id1}`;
     }
 
+    // --- SESLİ SOHBET (MOCK / BASİT SİNYALLEŞME) ---
     async function joinVoice(channelName) {
       if (activeVoiceChannel === channelName) return;
       if (activeVoiceChannel) leaveVoice();
@@ -865,6 +880,7 @@
         document.getElementById('leave-voice-btn').style.display = 'inline-block';
         document.getElementById('toggle-mic-btn').style.display = 'inline-block';
 
+        // Firebase üzerinde odadaki kişileri güncelle (Gerçek WebRTC Peer-to-Peer için sinyalleşme buraya eklenir)
         set(ref(db, `voiceRooms/${currentServer}/${channelName}/${currentUserId}`), {
           name: currentUser,
           active: true
